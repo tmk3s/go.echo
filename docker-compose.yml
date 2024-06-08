@@ -1,0 +1,16 @@
+version: '3' # composeファイルのバージョン
+services:
+  app: # サービス名
+    build: # ビルドに使うDockerファイルのパス
+      context: .
+      dockerfile: ./Dockerfile
+    volumes: # マウントディレクトリ
+      - ./app:/usr/src/app
+    tty: true # コンテナの永続化
+    stdin_open: true
+    # env_file: # .envファイル
+    #   - ./build/.go_env
+    ports:
+      - "1323:1323"
+    environment:
+      - TZ=Asia/Tokyo
