@@ -72,3 +72,36 @@ CONTAINER ID   IMAGE        COMMAND   CREATED         STATUS         PORTS      
 183eb6fcc4c7   goecho-app   "bash"    4 seconds ago   Up 4 seconds   0.0.0.0:1323->1323/tcp   goecho-app-1
 
 port=>OK
+
+ホットリロード
+https://qiita.com/frkawa/items/1dd12e19f10de034e0f5
+https://github.com/air-verse/air/issues/605#issuecomment-2146474109
+
+コマンド： go install github.com/air-verse/air@latest
+
+
+
+2024-06-09 02:20:34 presentation/api/handler/auth_handler.go has changed
+2024-06-09 02:20:34 building...
+2024-06-09 02:20:34 db/db.go:4:5: no required module provides package github.com/jinzhu/gorm; to add it:
+
+2024-06-09 02:20:34     go get github.com/jinzhu/gorm
+
+2024-06-09 02:20:34 db/db.go:5:5: no required module provides package github.com/jinzhu/gorm/dialects/sqlite; to add it:
+
+2024-06-09 02:20:34     go get github.com/jinzhu/gorm/dialects/sqlite
+
+2024-06-09 02:20:34 presentation/api/handler/auth_handler.go:7:5: no required module provides package github.com/dgrijalva/jwt-go; to add it:
+
+2024-06-09 02:20:34     go get github.com/dgrijalva/jwt-go
+
+2024-06-09 02:20:34 presentation/api/handler/auth_handler.go:8:5: no required module provides package github.com/labstack/echo; to add it:
+
+2024-06-09 02:20:34     go get github.com/labstack/echo
+
+2024-06-09 02:20:34 presentation/api/handler/auth_handler.go:9:5: no required module provides package github.com/labstack/echo/middleware; to add it:
+
+2024-06-09 02:20:34     go get github.com/labstack/echo/middleware
+⇩
+https://sumito.jp/2021/04/23/go1-16-build-error-github-com-missing-package/
+go mod tidy

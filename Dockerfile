@@ -5,9 +5,12 @@ ENV LANG C.UTF-8
 ENV APP_ROOT /app
 WORKDIR /usr/src/app
 
+RUN apt-get update -qq && apt-get install -y vim && apt-get install -y nodejs npm
+
 # pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
-# COPY go.mod go.sum ./
-# RUN go mod download && go mod verify && go mod init app && go get github.com/labstack/echo/v4
+COPY app/go.mod app/go.sum ./
+RUN go mod download && go mod verify
+RUN go install github.com/air-verse/air@latest
 
 # COPY . .
 # RUN go build -v -o /usr/local/bin/app ./...
