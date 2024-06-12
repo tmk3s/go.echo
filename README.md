@@ -105,3 +105,17 @@ https://github.com/air-verse/air/issues/605#issuecomment-2146474109
 ⇩
 https://sumito.jp/2021/04/23/go1-16-build-error-github-com-missing-package/
 go mod tidy
+
+https://echo.labstack.com/docs/middleware/jwt
+https://echo.labstack.com/docs/middleware/logger#configuration
+https://qiita.com/atsutama/items/68773112208c7fc05069
+https://qiita.com/x-color/items/24ff2491751f55e866cf
+https://echo.labstack.com/docs/binding
+https://gorm.io/ja_JP/docs/delete.html
+https://apidog.com/jp/blog/axios-put-request/
+https://github.com/golang-jwt/jwt/blob/main/example_test.go
+
+docker でログ見れない問題
+エラーチェック毎回しないといけない
+ポインタとか
+jwt周りの設定

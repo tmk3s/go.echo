@@ -73,7 +73,7 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
         user.Email,
         jwt.RegisteredClaims{
             // https://github.com/golang-jwt/jwt/blob/main/example_test.go
-            ExpiresAt: jwt.NewNumericDate(time.Unix(1516239022, 0)),
+            ExpiresAt: jwt.NewNumericDate(time.Unix(time.Now().Add(time.Hour * 72).Unix(), 0)),
             // ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72).Unix()), NG
             // ExpiresAt: time.Now().Add(time.Hour * 72).Unix(), NG
         },
