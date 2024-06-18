@@ -1,19 +1,12 @@
 "use client";
 
 import { useForm, SubmitHandler } from "react-hook-form";
+import { useRouter } from 'next/navigation'
 import axios from 'axios';
 
-async function createUser(email: string, password: string) {
-  try {
-    axios.defaults.baseURL = 'http://localhost:1323';
-    const response = await axios.post('/sign_up', { email: email, password: password });
-    console.log(response);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
 export default () => {
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
@@ -25,12 +18,24 @@ export default () => {
       password: '',
     }
   });
+
+  const signUp = async (email: string, password: string) => {
+    try {
+      axios.defaults.baseURL = 'http://localhost:1323';
+      const response = await axios.post('/sign_up', { email: email, password: password }, { withCredentials: true });
+      console.log(response);
+      router.push('/sign_in');
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <form
         className="max-w-sm mx-auto"
         onSubmit={handleSubmit((data) => {
-          createUser(data.email, data.password)
+          signUp(data.email, data.password)
         })}
       >
         <div className="mb-5">
