@@ -18,6 +18,7 @@ type TodoPath struct {
 }
 
 func (h *TodoHandler) Index(c echo.Context) error{
+	fmt.Printf("%s", "call index!!")
 	id := userIDFromToken(c)
 	user := db.FindUser(&db.User{ Id: id })
 	if user.Id == 0 {

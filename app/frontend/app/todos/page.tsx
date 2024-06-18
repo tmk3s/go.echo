@@ -1,6 +1,7 @@
 "use client";
 
-import { useForm, SubmitHandler } from "react-hook-form";
+import Axios from 'axios';
+import { useForm } from "react-hook-form";
 import { useState, useEffect } from 'react';
 import newApiInstance from "../api"
 
@@ -11,99 +12,7 @@ interface Todo {
   completed: boolean;
 }
 
-function getCookieValue(key: string): string {
-  const cookies = document.cookie.split(';')
-  const foundCookie = cookies.find(
-    (cookie) => cookie.split('=')[0].trim() === key.trim()
-  )
-  if (foundCookie) {
-    const cookieValue = decodeURIComponent(foundCookie.split('=')[1])
-    return cookieValue
-  }
-  return ''
-}
-
-async function fetchTodos(setTodos: any) {
-  try {
-    const session: string = getCookieValue('session')
-    const api = newApiInstance();
-    const response = await api.get('/api/todos', {
-      headers: {
-        Authorization: `Bearer ${session}`,
-      }
-    })
-    console.log(response);
-    setTodos(response.data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-async function addTodo(obj: any, setOpenAddModal: any, setTodos: any) {
-  try {
-    const session: string = getCookieValue('session')
-    const api = newApiInstance();
-    const formData = new FormData();
-    formData.append("title", obj.title);
-    formData.append("token", session);
-    const response = await api.post('/api/todo',
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${session}`,
-        },
-      }
-    )
-    console.log(response);
-    setOpenAddModal(false);
-    setTodos(response.data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-async function completeTodo(obj: any, setOpenModal: any, setTodos: any) {
-  try {
-    const session: string = getCookieValue('session')
-    const api = newApiInstance();
-    const formData = new FormData();
-    const response = await api.put(`/api/todo/${obj.id}/completed`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${session}`,
-        },
-      }
-    )
-    console.log(response);
-    setOpenModal(false);
-    setTodos(response.data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-
-async function deleteTodo(obj: any, setOpenModal: any, setTodos: any) {
-  try {
-    const session: string = getCookieValue('session')
-    const api = newApiInstance();
-    const response = await api.delete(`/api/todo/${obj.id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${session}`,
-        },
-      }
-    )
-    console.log(response);
-    setOpenModal(false);
-    setTodos(response.data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-const EditModal = ({obj, onSubmit, setOpenModal, setTodos}: {obj: any, onSubmit: any, setOpenModal: any, setTodos: any} ): React.ReactNode => {
+const EditModal = ({obj, onSubmit, setOpenModal, deleteTodo}: {obj: any, onSubmit: any, setOpenModal: any, deleteTodo: any} ): React.ReactNode => {
   const {
     register,
     handleSubmit,
@@ -123,7 +32,7 @@ const EditModal = ({obj, onSubmit, setOpenModal, setTodos}: {obj: any, onSubmit:
       <form
         className="max-w-sm mx-auto"
         onSubmit={handleSubmit((data) => {
-          onSubmit({id: data.id, title: data.title}, setOpenModal, setTodos);
+          onSubmit({id: data.id, title: data.title});
         })}
       >
         <div className="relative p-4 w-full max-w-2xl max-h-full">
@@ -149,7 +58,7 @@ const EditModal = ({obj, onSubmit, setOpenModal, setTodos}: {obj: any, onSubmit:
               </button>
               {
                 obj && (
-                  <button type="button" onClick={() => deleteTodo(obj, setOpenModal, setTodos)} className="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-red-100 dark:focus:ring-red-700 dark:bg-red-800 dark:text-red-400 dark:border-red-600 dark:hover:text-white dark:hover:bg-red-700">
+                  <button type="button" onClick={() => deleteTodo(obj)} className="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-red-100 dark:focus:ring-red-700 dark:bg-red-800 dark:text-red-400 dark:border-red-600 dark:hover:text-white dark:hover:bg-red-700">
                     Delete
                   </button>
                 )
@@ -167,21 +76,88 @@ export default () => {
   const [openCompleteModal, setOpenCompleteModal] = useState(false);
   const [todo, setTodo] = useState({});
   const [todos, setTodos] = useState<any>() // useState<Array<Todo>>();
+  const [login, setLogin] = useState(false);
 
+  const unauthorized = (e: any) => {
+    console.error(e);
+    if (Axios.isAxiosError(e) && e.response && e.response.status === 401) {
+      console.log('401 Error!!');
+      console.log(e.message); //Axiosの例外オブジェクトとして扱える
+      localStorage.setItem("unauthorizedError", "ログインしてください");
+      window.location.href = '/sign_in'
+    }
+  }
+
+  const fetchTodos = async () => {
+    try {
+      const api = newApiInstance();
+      const response = await api.get('/api/todos')
+  
+      console.log(response);
+      setTodos(response.data);
+      setLogin(true);
+    } catch (e) {
+      unauthorized(e);
+    }
+  }
+  
+  const addTodo = async (obj: any) => {
+    try {
+      const api = newApiInstance();
+      const formData = new FormData();
+      formData.append("title", obj.title);
+      const response = await api.post('/api/todo', formData)
+  
+      console.log(response);
+      setOpenAddModal(false);
+      setTodos(response.data);
+    } catch (e) {
+      unauthorized(e);
+    }
+  }
+  
+  const completeTodo = async (obj: any) => {
+    try {
+      const api = newApiInstance();
+      const formData = new FormData();
+      const response = await api.put(`/api/todo/${obj.id}/completed`, formData)
+  
+      console.log(response);
+      setOpenCompleteModal(false);
+      setTodos(response.data);
+    } catch (e) {
+      unauthorized(e);
+    }
+  }
+  
+  const deleteTodo = async (obj: any) => {
+    try {
+      const api = newApiInstance();
+      const response = await api.delete(`/api/todo/${obj.id}`)
+  
+      console.log(response);
+      setOpenCompleteModal(false);
+      setTodos(response.data);
+    } catch (e) {
+      unauthorized(e);
+    }
+  }
 
   useEffect(() => {
-    fetchTodos(setTodos);
+    fetchTodos();
   }, [])
 
   return (
     <main className="min-h-screen flex-col items-center justify-between p-24">
       {/* Modal toggle */}
-      <button onClick={() => setOpenAddModal(true)} className="mb-16 block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">
-        Add
-      </button>
-
+      { login && (
+        <button onClick={() => setOpenAddModal(true)} className="mb-16 block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">
+          Add
+        </button>
+      )}
+      
       { openAddModal && (
-        <EditModal obj={null} onSubmit={addTodo} setOpenModal={setOpenAddModal} setTodos={setTodos} />
+        <EditModal obj={null} onSubmit={addTodo} setOpenModal={setOpenAddModal} deleteTodo={deleteTodo}/>
       )}
       <div className="grid lg:grid-cols-4 md:grid-cols-3 xs:grid-cols-2 gap-4 text-center">
         {
@@ -215,7 +191,7 @@ export default () => {
         }
        </div>
       { openCompleteModal && (
-        <EditModal obj={todo} onSubmit={completeTodo} setOpenModal={setOpenCompleteModal} setTodos={setTodos} />
+        <EditModal obj={todo} onSubmit={completeTodo} setOpenModal={setOpenCompleteModal} deleteTodo={deleteTodo}/>
       )}
     </main>
   );
