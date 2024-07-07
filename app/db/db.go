@@ -26,7 +26,5 @@ func init() {
     if err != nil {
       panic("failed to connect database")
     }
-    db.AutoMigrate(&User{})
-    db.AutoMigrate(&Todo{})
-    
+    db.AutoMigrate(&User{}, &Todo{}, &UserInfo{}, &UserAddress{}, &Tag{}, &PostCode{})
 }

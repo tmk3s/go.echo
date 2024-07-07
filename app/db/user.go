@@ -1,14 +1,24 @@
 package db
 
+import (
+	"gorm.io/gorm"
+)
+
 type User struct {
-    Id       int   `json:"id" gorm:"praimaly_key"`
-    Name     string `json:"name"`
-    Email	 string `json:"email"`
+    gorm.Model
+    Email	 string `json:"email" gorm:"index`
     Password string `json:"password"`
 }
 
 func CreateUser(user *User) {
     db.Create(user)
+}
+
+func FindUserById(id uint) User {
+    var user User
+    db.First(&user, id)
+    // db.Where(u).First(&user)
+    return user
 }
 
 func FindUser(u *User) User {

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import newApiInstance from "../api"
 
 interface Todo {
-  id: number;
+  ID: number;
   userId: number;
   title: string;
   completed: boolean;
@@ -164,10 +164,10 @@ export default () => {
           todos?.map((todo: Todo) => {
             return (
               <div 
-                key={todo.id}
+                key={todo.ID}
                 className="relative block group min-h-72 p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
                 onClick={() => {
-                  setTodo({id: todo.id, title: todo.title})
+                  setTodo({id: todo.ID, title: todo.title})
                   setOpenCompleteModal(true)
                 }}
               >

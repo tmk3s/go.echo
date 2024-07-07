@@ -16,8 +16,8 @@ type AuthHandler struct {}
 // jwtCustomClaims are custom claims extending default ones.
 // See https://github.com/golang-jwt/jwt for more examples
 type jwtCustomClaims struct {
-    Id    int    `json:"id"`
-    Email string `json:"email"`
+    Id    uint    `json:"id"`
+    Email string  `json:"email"`
     jwt.RegisteredClaims
 }
 
@@ -40,8 +40,8 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
             Message: "invalid Email or password",
         }
     }
-
-    if u := db.FindUser(&db.User{Email: user.Email}); u.Id != 0 {
+ 
+    if u := db.FindUser(&db.User{Email: user.Email}); u.ID != 0 {
         return &echo.HTTPError{
             Code:    http.StatusConflict,
             Message: "email already exists",
@@ -61,7 +61,7 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
     }
 
     user := db.FindUser(&db.User{Email: u.Email})
-    if user.Id == 0 || user.Password != u.Password {
+    if user.ID == 0 || user.Password != u.Password {
         return &echo.HTTPError{
             Code:    http.StatusUnauthorized,
             Message: "invalid Email or password",
@@ -69,7 +69,7 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
     }
 
     claims := &jwtCustomClaims{
-        user.Id,
+        user.ID,
         user.Email,
         jwt.RegisteredClaims{
             // https://github.com/golang-jwt/jwt/blob/main/example_test.go

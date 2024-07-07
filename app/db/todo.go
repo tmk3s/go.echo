@@ -2,9 +2,13 @@ package db
 
 import "fmt"
 
+import (
+	"gorm.io/gorm"
+)
+
 type Todo struct {
-  Id         int    `json:"id" param:"id" gorm:"praimaly_key"`
-	UserId     int    `json:"user_id"`
+  gorm.Model
+	UserId     uint   `json:"user_id" gorm:"praimaly_key"`
   Title      string `json:"title"`
   Completed  bool   `json:"completed"`
 }

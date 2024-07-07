@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"fmt"
+//	"strconv"
 
 	"github.com/labstack/echo/v4"
 	// "github.com/labstack/echo-jwt/v4"
@@ -20,11 +21,11 @@ type TodoPath struct {
 func (h *TodoHandler) Index(c echo.Context) error{
 	fmt.Printf("%s", "call index!!")
 	id := userIDFromToken(c)
-	user := db.FindUser(&db.User{ Id: id })
-	if user.Id == 0 {
+	user := db.FindUserById(id)
+	if user.ID == 0 {
 		return echo.ErrNotFound
 	}
-	todos := db.FindTodos(&db.Todo{ UserId: user.Id })
+	todos := db.FindTodos(&db.Todo{ UserId: user.ID })
 	return c.JSON(http.StatusOK, todos)
 }
 
@@ -41,8 +42,8 @@ func (h *TodoHandler) Create(c echo.Context) error{
 	}
 
 	id := userIDFromToken(c)
-	user := db.FindUser(&db.User{ Id: id })
-	if user.Id == 0 {
+	user := db.FindUserById(id)
+	if user.ID == 0 {
 		return echo.ErrNotFound
 	}
 	todo.UserId = id
@@ -54,10 +55,13 @@ func (h *TodoHandler) Create(c echo.Context) error{
 
 func (h *TodoHandler) Complete(c echo.Context) error{
 	todo := db.FindTodo(c.Param("id"))
-	
+	if todo.ID == 0 {
+		return echo.ErrNotFound
+	}	
+
 	id := userIDFromToken(c)
-	user := db.FindUser(&db.User{ Id: id })
-	if user.Id == 0 {
+	user := db.FindUserById(id)
+	if user.ID == 0 {
 		return echo.ErrNotFound
 	}
 
@@ -72,8 +76,8 @@ func (h *TodoHandler) Delete(c echo.Context) error{
 	todo := db.FindTodo(c.Param("id"))
 	
 	id := userIDFromToken(c)
-	user := db.FindUser(&db.User{ Id: id })
-	if user.Id == 0 {
+	user := db.FindUserById(id)
+	if user.ID == 0 {
 		return echo.ErrNotFound
 	}
 
@@ -85,10 +89,11 @@ func (h *TodoHandler) Delete(c echo.Context) error{
 	return c.JSON(http.StatusOK, todos)
 }
 
-func userIDFromToken(c echo.Context) int {
+func userIDFromToken(c echo.Context) uint {
 	fmt.Print(c.Get("user"))
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(*jwtCustomClaims)
-	id := claims.Id
-	return id
+	// id, _ := strconv.Atoi(claims.Id)
+	fmt.Printf("%s ID desuto!!!!!!!!!!!!!!!!!!!", claims.Id)
+	return claims.Id
 }
