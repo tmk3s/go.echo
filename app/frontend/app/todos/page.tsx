@@ -1,6 +1,7 @@
 "use client";
 
 import Axios from 'axios';
+import Cookies from 'js-cookie';
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from 'react';
 import newApiInstance from "../api"
@@ -151,9 +152,22 @@ export default () => {
     <main className="min-h-screen flex-col items-center justify-between p-24">
       {/* Modal toggle */}
       { login && (
-        <button onClick={() => setOpenAddModal(true)} className="mb-16 block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">
-          Add
-        </button>
+        <>
+          <button onClick={() => setOpenAddModal(true)} className="mb-16 block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">
+            Add
+          </button>
+
+          <button 
+            onClick={() => { 
+              Cookies.remove('session')
+              window.location.href = '/sign_in'
+            }}
+            className="mb-16 block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            type="button"
+          >
+            sign_out
+          </button>
+        </>
       )}
       
       { openAddModal && (
