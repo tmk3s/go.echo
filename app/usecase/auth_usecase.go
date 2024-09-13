@@ -19,7 +19,7 @@ func NewAuthUseCase(r repository.UserRepository) AuthUseCase {
 }
 
 func (u *authUseCase) GetUser(email string, password string) (*model.User, error) {
-	return u.UserRepository.GetEmailAndPass(email, password)
+	return u.UserRepository.GetUserByEmailAndPass(email, password)
 }
 
 func (u *authUseCase) CreateUser(email string, password string) (*model.User, error) {

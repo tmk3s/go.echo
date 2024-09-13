@@ -60,7 +60,7 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
         return err
     }
 
-    if user != nil {
+    if user == nil {
         return &echo.HTTPError{
             Code:    http.StatusConflict,
             Message: "email already exists",
@@ -96,7 +96,7 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
         return err
     }
 
-    if user != nil {
+    if user == nil {
         return &echo.HTTPError{
             Code:    http.StatusUnauthorized,
             Message: "invalid Email or password",
@@ -113,6 +113,8 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
             // ExpiresAt: time.Now().Add(time.Hour * 72).Unix(), NG
         },
     }
+	fmt.Printf("%s", "データ取得OK")
+	fmt.Printf("%s", user)
 
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
     t, err := token.SignedString(signingKey)

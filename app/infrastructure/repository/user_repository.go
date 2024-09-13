@@ -16,7 +16,7 @@ func NewUserRepository(conn *gorm.DB) repository.UserRepository {
 	return &userRepository{conn} // ポインタを返す
 }
 
-func (r *userRepository) GetEmailAndPass(email string, password string) (*model.User, error) {
+func (r *userRepository) GetUserByEmailAndPass(email string, password string) (*model.User, error) {
 	fmt.Printf("%s", "OK?")
 	var user model.User
 	query := r.Conn.Where("")
