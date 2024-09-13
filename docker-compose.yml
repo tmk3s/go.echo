@@ -14,7 +14,12 @@ services:
     ports:
       - "1323:1323"
     environment:
-      - TZ=Asia/Tokyo
+      TZ: Asia/Tokyo
+      MYSQL_ID: 'root'
+      MYSQL_PASSWORD: 'pass'
+      MYSQL_HOST: 'db'
+      MYSQL_PORT: '3306'
+      MYSQL_DATABASE: 'develop'
   front: # サービス名
     build: # ビルドに使うDockerファイルのパス
       context: .

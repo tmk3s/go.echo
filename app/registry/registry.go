@@ -9,12 +9,6 @@ type Registry struct {
 	DbConn *gorm.DB
 }
 
-func NewReigistry(dbConn *gorm.DB) Registry {
-	return Registry(dbConn)
+func NewReigistry(DbConn *gorm.DB) Registry {
+	return Registry{DbConn}
 }
-
-// type Registry struct {}
-
-// func NewReigistry() Registry {
-// 	return Registry{}
-// }

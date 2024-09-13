@@ -8,22 +8,20 @@ import (
 	// "github.com/golang-jwt/jwt/v5"
 
 	"app/presentation/api/handler"
-	"app/registry"
-	"app/usecase"
 )
 
-func SteupRouter(e *echo.Echo) {
+func SteupRouter(e *echo.Echo, h handler.AppHandler) {
 	// https://echo.labstack.com/docs/routing
-	e.GET("/users", new(handler.UserHandler).Index)
+	// e.GET("/users", new(handler.UserHandler).Index)
 
 	//　todoのような書き方できるなら無理にclass使わなくても・・・
-	e.POST("/sign_up", new(handler.AuthHandler).SignUp)
-	e.POST("/sign_in", new(handler.AuthHandler).SignIn)
+	e.POST("/sign_up", h.AuthHandler.SignUp)
+	e.POST("/sign_in", h.AuthHandler.SignIn)
 
 	api := e.Group("/api")
 	api.Use(echojwt.WithConfig(handler.Config)) // /api 下はJWTの認証が必要
-	api.GET("/todos", new(handler.TodoHandler).Index)
-	api.POST("/todo", new(handler.TodoHandler).Create)
-	api.DELETE("/todo/:id", new(handler.TodoHandler).Delete)
-	api.PUT("/todo/:id/completed", new(handler.TodoHandler).Complete)
+	api.GET("/todos", h.TodoHandler.Index)
+	api.POST("/todo", h.TodoHandler.Create)
+	api.DELETE("/todo/:id", h.TodoHandler.Delete)
+	api.PUT("/todo/:id/completed", h.TodoHandler.Complete)
 }

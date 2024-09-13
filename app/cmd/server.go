@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"app/config"
 	"app/presentation/api/router"
 	"app/registry"
 )
@@ -36,10 +38,20 @@ func main() {
 		// },
 	}))
 
-	c := registry.NewReigistry()
-	h := c.NewAuthHandler
+	dbConnection, err := config.NewMysqlConnection()
+	if err != nil {
+		panic(fmt.Sprintf("create dbConnection failed to connect database %s", err))
+	}
+
+	err = config.ExecuteMigrate(dbConnection)
+	if err != nil {
+		panic(fmt.Sprintf("create dbConnection failed to connect database %s", err))
+	}
+
+	r := registry.NewReigistry(dbConnection)
+	h := r.NewAppHandler()
 
 	e.Logger.Info("hello")
-	router.SteupRouter(e)
+	router.SteupRouter(e, *h)
 	e.Logger.Fatal(e.Start(":1323"))
 }

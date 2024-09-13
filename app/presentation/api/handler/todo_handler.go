@@ -19,6 +19,10 @@ type TodoPath struct {
 	ID string `param:"id"`
 }
 
+func NewTodoHandler(u usecase.TodoUseCase) *TodoHandler {
+	return &TodoHandler{u}
+}
+
 func (h *TodoHandler) Index(c echo.Context) error{
 	fmt.Printf("%s", "sumihisa tomoki")
 	userId := CurrentUserId(c)
