@@ -2,16 +2,23 @@ package handler
 
 import (
     "net/http"
+    "fmt"
     "time"
 
     "github.com/labstack/echo/v4"
     "github.com/labstack/echo-jwt/v4"
     "github.com/golang-jwt/jwt/v5"
 
-	"app/db"
+    "app/usecase"
 )
 
-type AuthHandler struct {}
+type AuthHandler struct {
+    usecase.AuthUseCase
+}
+
+func NewAuthHandler(u usecase.AuthUseCase) *AuthHandler {
+    return &AuthHandler{u}
+}
 
 // jwtCustomClaims are custom claims extending default ones.
 // See https://github.com/golang-jwt/jwt for more examples
@@ -28,40 +35,68 @@ var Config = echojwt.Config{
     SigningKey: signingKey,
 }
 
+type SignUpRequest struct {
+    Email string `json:email`
+    Password string `json:password`
+}
+
 func (h *AuthHandler) SignUp(c echo.Context) error {
-    user := new(db.User)
-    if err := c.Bind(user); err != nil {
+    var params SignUpRequest
+    if err := c.Bind(&params); err != nil {
         return err
     }
 
-    if user.Email == "" || user.Password == "" {
+    fmt.Printf("%s", "Bind Done")
+
+    if params.Email == "" || params.Password == "" {
         return &echo.HTTPError{
             Code:    http.StatusBadRequest,
             Message: "invalid Email or password",
         }
     }
- 
-    if u := db.FindUser(&db.User{Email: user.Email}); u.ID != 0 {
+
+    user, err := h.AuthUseCase.GetUser(params.Email, params.Password)
+    if err != nil {
+        return err
+    }
+
+    if user != nil {
         return &echo.HTTPError{
             Code:    http.StatusConflict,
             Message: "email already exists",
         }
     }
 
-    db.CreateUser(user)
-    user.Password = ""
-
-    return c.JSON(http.StatusCreated, user)
-}
-
-func (h *AuthHandler) SignIn(c echo.Context) error {
-    u := new(db.User)
-    if err := c.Bind(u); err != nil {
+    user, err = h.AuthUseCase.CreateUser(params.Email, params.Password)
+    if err != nil {
         return err
     }
 
-    user := db.FindUser(&db.User{Email: u.Email})
-    if user.ID == 0 || user.Password != u.Password {
+    user.Password = "" // フロントに返さないようにクリア
+    return c.JSON(http.StatusCreated, user)
+}
+
+type SignInRequest struct {
+    Email string `json:email`
+    Password string `json:password`
+}
+
+func (h *AuthHandler) SignIn(c echo.Context) error {
+    fmt.Printf("%s", "SignIn Start")
+    var params SignInRequest
+    if err := c.Bind(&params); err != nil {
+        return err
+    }
+    fmt.Printf("%s", "Bind Done")
+    fmt.Printf("%s", params.Email)
+    fmt.Printf("%s", params.Password)
+
+    user, err := h.AuthUseCase.GetUser(params.Email, params.Password)
+    if err != nil {
+        return err
+    }
+
+    if user != nil {
         return &echo.HTTPError{
             Code:    http.StatusUnauthorized,
             Message: "invalid Email or password",
@@ -90,9 +125,6 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
     cookie.Value = t
     cookie.Expires = time.Now().Add(24 * time.Hour)
     c.SetCookie(cookie)
-    return c.String(http.StatusOK, "write a cookie")
 
-    // return c.JSON(http.StatusOK, map[string]string{
-    //     "token": t,
-    // })
+    return c.String(http.StatusOK, "write a cookie")
 }

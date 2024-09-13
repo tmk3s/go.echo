@@ -1,4 +1,4 @@
-version: '3' # composeファイルのバージョン
+# version: '3' # composeファイルのバージョン /Users/tomoki/workspace/go.echo/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
 services:
   backend: # サービス名
     build: # ビルドに使うDockerファイルのパス

@@ -5,6 +5,8 @@ import (
   "gorm.io/gorm/logger"
   // "gorm.io/driver/sqlite"
   "gorm.io/driver/mysql"
+
+  "app/domain/model"
 )
 
 var db *gorm.DB
@@ -26,5 +28,5 @@ func init() {
     if err != nil {
       panic("failed to connect database")
     }
-    db.AutoMigrate(&User{}, &Todo{}, &UserInfo{}, &UserAddress{}, &Tag{}, &PostCode{})
+    db.AutoMigrate(&model.User{}, &model.Todo{}, &model.UserInfo{}, &model.UserAddress{}, &model.Tag{}, &model.PostCode{})
 }

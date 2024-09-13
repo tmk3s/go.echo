@@ -119,3 +119,49 @@ docker でログ見れない問題
 エラーチェック毎回しないといけない
 ポインタとか
 jwt周りの設定
+
+
+
+### ディレクトリ構造
+- domain
+  - model
+  - repository
+  - service
+- errors
+- frontend
+- infrastructure
+  - dto
+  - repository
+  - service
+- presentation
+  - api
+    - handler
+    - router
+- usecase
+
+#### domain/model
+ドメインを表現する(railsのmodelと同じ)
+
+#### domain/repository
+interface群
+infrastructure>repositoryで実装する
+
+#### domain/service
+ドメインのビジネスロジックで単体のモデルでは表現できないものはここに定義する
+interface群
+infrastructure>serviceで実装する
+
+### infrastructure>repository
+repositoryの実装を行う
+
+### infrastructure>service
+serviceの実装を行う
+
+### presentation>api>handler
+APIの定義
+
+### presentation>api>router
+APIのパス定義
+
+### usecase
+presentation>api>handlerから呼ばれる

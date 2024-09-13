@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"app/presentation/api/router"
+	"app/registry"
 )
 
 func main() {
@@ -34,6 +35,9 @@ func main() {
 		// 	echo.HeaderAuthorization,
 		// },
 	}))
+
+	c := registry.NewReigistry()
+	h := c.NewAuthHandler
 
 	e.Logger.Info("hello")
 	router.SteupRouter(e)

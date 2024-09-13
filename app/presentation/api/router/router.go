@@ -8,6 +8,8 @@ import (
 	// "github.com/golang-jwt/jwt/v5"
 
 	"app/presentation/api/handler"
+	"app/registry"
+	"app/usecase"
 )
 
 func SteupRouter(e *echo.Echo) {

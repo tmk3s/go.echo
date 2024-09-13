@@ -3,97 +3,76 @@ package handler
 import (
 	"net/http"
 	"fmt"
-//	"strconv"
 
 	"github.com/labstack/echo/v4"
-	// "github.com/labstack/echo-jwt/v4"
-	"github.com/golang-jwt/jwt/v5"
+	// "github.com/golang-jwt/jwt/v5"
 
-	"app/db"
+	// "app/db"
+	"app/usecase"
 )
 
-type TodoHandler struct {}
+type TodoHandler struct {
+	usecase.TodoUseCase
+}
 
 type TodoPath struct {
 	ID string `param:"id"`
 }
 
 func (h *TodoHandler) Index(c echo.Context) error{
-	fmt.Printf("%s", "call index!!")
-	id := userIDFromToken(c)
-	user := db.FindUserById(id)
-	if user.ID == 0 {
-		return echo.ErrNotFound
+	fmt.Printf("%s", "sumihisa tomoki")
+	userId := CurrentUserId(c)
+	todos, err := h.TodoUseCase.GetTodos(userId)
+	if err != nil {
+			return echo.ErrNotFound
 	}
-	todos := db.FindTodos(&db.Todo{ UserId: user.ID })
 	return c.JSON(http.StatusOK, todos)
 }
 
 func (h *TodoHandler) Create(c echo.Context) error{
-	todo := new(db.Todo)
-	if err := c.Bind(todo); err != nil {
-			return err
-	}
-	if todo.Title == "" {
-		return &echo.HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "invalid to or message fields",
-		}
-	}
+	// todo := new(db.Todo)
+	// if err := c.Bind(todo); err != nil {
+	// 		return err
+	// }
+	// if todo.Title == "" {
+	// 	return &echo.HTTPError{
+	// 		Code:    http.StatusBadRequest,
+	// 		Message: "invalid to or message fields",
+	// 	}
+	// }
 
-	id := userIDFromToken(c)
-	user := db.FindUserById(id)
-	if user.ID == 0 {
-		return echo.ErrNotFound
-	}
-	todo.UserId = id
-  db.CreateTodo(todo)
+	// id := userIDFromToken(c)
+	// user := db.FindUserById(id)
+	// if user.ID == 0 {
+	// 	return echo.ErrNotFound
+	// }
+	// todo.UserId = id
+  // db.CreateTodo(todo)
 
-	todos := db.FindTodos(&db.Todo{ UserId: id })
-	return c.JSON(http.StatusOK, todos)
+	// todos := db.FindTodos(&db.Todo{ UserId: id })
+	// return c.JSON(http.StatusOK, todos)
+	return c.JSON(http.StatusOK, nil)
 }
 
 func (h *TodoHandler) Complete(c echo.Context) error{
-	todo := db.FindTodo(c.Param("id"))
-	if todo.ID == 0 {
-		return echo.ErrNotFound
-	}	
-
-	id := userIDFromToken(c)
-	user := db.FindUserById(id)
-	if user.ID == 0 {
-		return echo.ErrNotFound
-	}
-
-  if err := db.UpdateTodo(&todo); err != nil {
-		return err
-	}
-	todos := db.FindTodos(&db.Todo{ UserId: id })
-	return c.JSON(http.StatusOK, todos)
+	// todo := db.FindTodo(c.Param("id"))s
+	return c.JSON(http.StatusOK, nil)
 }
 
 func (h *TodoHandler) Delete(c echo.Context) error{
-	todo := db.FindTodo(c.Param("id"))
+	// todo := db.FindTodo(c.Param("id"))
 	
-	id := userIDFromToken(c)
-	user := db.FindUserById(id)
-	if user.ID == 0 {
-		return echo.ErrNotFound
-	}
+	// id := userIDFromToken(c)
+	// user := db.FindUserById(id)
+	// if user.ID == 0 {
+	// 	return echo.ErrNotFound
+	// }
 
-	if err := db.DeleteTodo(&todo); err != nil {
-		return err
-	}
+	// if err := db.DeleteTodo(&todo); err != nil {
+	// 	return err
+	// }
 
-	todos := db.FindTodos(&db.Todo{ UserId: id })
-	return c.JSON(http.StatusOK, todos)
-}
-
-func userIDFromToken(c echo.Context) uint {
-	fmt.Print(c.Get("user"))
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*jwtCustomClaims)
-	// id, _ := strconv.Atoi(claims.Id)
-	fmt.Printf("%s ID desuto!!!!!!!!!!!!!!!!!!!", claims.Id)
-	return claims.Id
+	// todos := db.FindTodos(&db.Todo{ UserId: id })
+	// return c.JSON(http.StatusOK, todos)
+	return c.JSON(http.StatusOK, nil)
 }
