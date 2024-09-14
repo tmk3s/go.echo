@@ -111,7 +111,7 @@ export default () => {
   
       console.log(response);
       setOpenAddModal(false);
-      setTodos(response.data);
+      await fetchTodos();
     } catch (e) {
       unauthorized(e);
     }
@@ -125,7 +125,7 @@ export default () => {
   
       console.log(response);
       setOpenCompleteModal(false);
-      setTodos(response.data);
+      await fetchTodos();
     } catch (e) {
       unauthorized(e);
     }
@@ -138,7 +138,7 @@ export default () => {
   
       console.log(response);
       setOpenCompleteModal(false);
-      setTodos(response.data);
+      await fetchTodos();
     } catch (e) {
       unauthorized(e);
     }
