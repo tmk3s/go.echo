@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"gorm.io/gorm"
 	"app/domain/model"
 	"app/domain/repository"
+	"gorm.io/gorm"
 )
 
 type todoRepository struct {
@@ -12,6 +12,15 @@ type todoRepository struct {
 
 func NewTodoRepository(Conn *gorm.DB) repository.TodoRepository {
 	return &todoRepository{Conn} // ポインタを返す
+}
+
+func (r *todoRepository) GetById(id uint) (*model.Todo, error) {
+	todo := &model.Todo{}
+	err := r.Conn.First(todo, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return todo, nil
 }
 
 func (r *todoRepository) GetList(userId uint) ([]model.Todo, error) {
@@ -25,16 +34,23 @@ func (r *todoRepository) GetList(userId uint) ([]model.Todo, error) {
 	return todos, err
 }
 
-func (r *todoRepository) Add(u *model.Todo) (*model.Todo, error) {
-	var todo model.Todo
-	return &todo, nil
+func (r *todoRepository) Add(todo *model.Todo) (*model.Todo, error) {
+	if err := r.Conn.Create(todo).Error; err != nil {
+		return nil, err
+	}
+	return todo, nil
 }
 
-func (r *todoRepository) Done(u *model.Todo) (*model.Todo, error) {
-	var todo model.Todo
-	return &todo, nil
+func (r *todoRepository) Update(todo *model.Todo) (*model.Todo, error) {
+	if err := r.Conn.Save(todo).Error; err != nil {
+		return nil, err
+	}
+	return todo, nil
 }
 
-func (r *todoRepository) Delete(id uint) (error) {
+func (r *todoRepository) Delete(todo *model.Todo) error {
+	if err := r.Conn.Delete(todo).Error; err != nil {
+		return err
+	}
 	return nil
 }

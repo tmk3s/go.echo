@@ -26,7 +26,7 @@ func main() {
 	// これとフロントでsign_inするときに, { withCredentials: true }追加
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowCredentials: true,
-		AllowOrigins: []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000"},
 		// これだとCORSエラーになる。何か足りていない・・
 		// AllowHeaders: []string{
 		// 	echo.HeaderAccessControlAllowHeaders,

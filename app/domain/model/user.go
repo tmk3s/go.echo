@@ -5,9 +5,9 @@ import (
 )
 
 type User struct {
-    gorm.Model
-    Email	 string `json:"email" gorm:"index`
-    Password string `json:"password"`
+	gorm.Model
+	Email    string `json:"email" gorm:"index`
+	Password string `json:"password"`
 }
 
 // func CreateUser(user *User) {

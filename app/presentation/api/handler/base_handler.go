@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/labstack/echo/v4"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo/v4"
 )
 
 func CurrentUserId(c echo.Context) uint {
