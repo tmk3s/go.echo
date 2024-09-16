@@ -14,9 +14,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const HederComponent = () => {
+    return (
+      <div className='header h-14 bg-teal-300 border-black sticky top-0'>
+        <h1 className='text-slate-50 font-bold text-3xl pt-2 pl-2'>
+          <a href='/'>@SmartDemo</a>
+        </h1>
+      </div>
+    )
+  }
+
   return (
     <html lang="ja">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <HederComponent />
+        {children}
+      </body>
     </html>
   );
 }

@@ -4,7 +4,7 @@ import { useForm, SubmitHandler } from "react-hook-form";
 import { useRouter } from 'next/navigation'
 import axios from 'axios';
 
-export default () => {
+const SignUp = () => {
   const router = useRouter();
 
   const {
@@ -66,3 +66,5 @@ export default () => {
     </main>
   );
 }
+
+export default SignUp

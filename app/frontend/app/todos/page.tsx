@@ -4,6 +4,7 @@ import Axios from 'axios';
 import Cookies from 'js-cookie';
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from 'react';
+import RootLayout from '@/components/RootLayout';
 import newApiInstance from "../api"
 
 interface Todo {
@@ -72,7 +73,7 @@ const EditModal = ({obj, onSubmit, setOpenModal, deleteTodo}: {obj: any, onSubmi
   )
 }
 
-export default () => {
+const Todos =  () => {
   const [openAddModal, setOpenAddModal] = useState(false);
   const [openCompleteModal, setOpenCompleteModal] = useState(false);
   const [todo, setTodo] = useState({});
@@ -149,6 +150,7 @@ export default () => {
   }, [])
 
   return (
+    <RootLayout>
     <main className="min-h-screen flex-col items-center justify-between p-24">
       {/* Modal toggle */}
       { login && (
@@ -208,5 +210,8 @@ export default () => {
         <EditModal obj={todo} onSubmit={completeTodo} setOpenModal={setOpenCompleteModal} deleteTodo={deleteTodo}/>
       )}
     </main>
+    </RootLayout>
   );
 }
+
+export default Todos

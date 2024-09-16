@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from 'react';
 
-export default () => {
+const SignIn = () => {
   const router = useRouter();
   const [openErrorToast, setOpenErrorToast] = useState(true);
   const [unauthorizedError, setUnauthorizedError] = useState('');
@@ -87,3 +87,5 @@ export default () => {
     </main>
   );
 }
+
+export default SignIn
