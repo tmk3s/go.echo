@@ -6,23 +6,15 @@ import (
 
 type User struct {
 	gorm.Model
-	Email    string `json:"email" gorm:"index`
-	Password string `json:"password"`
+	CompanyId uint   `json:"company_id" gorm:"index"`
+	Email     string `json:"email" gorm:"index`
+	Password  string `json:"password"`
+	UserInfo  UserInfo
 }
 
-// func CreateUser(user *User) {
-//     db.Create(user)
-// }
-
-// func FindUserById(id uint) User {
-//     var user User
-//     db.First(&user, id)
-//     // db.Where(u).First(&user)
-//     return user
-// }
-
-// func FindUser(u *User) User {
-//     var user User
-//     db.Where(u).First(&user)
-//     return user
-// }
+func NewUser(email string, password string) *User {
+	return &User{
+		Email:    email,
+		Password: password,
+	}
+}

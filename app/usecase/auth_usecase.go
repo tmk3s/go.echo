@@ -23,5 +23,6 @@ func (u *authUseCase) GetUser(email string, password string) (*model.User, error
 }
 
 func (u *authUseCase) CreateUser(email string, password string) (*model.User, error) {
-	return u.UserRepository.Create(email, password)
+	user := model.NewUser(email, password)
+	return u.UserRepository.Create(user)
 }

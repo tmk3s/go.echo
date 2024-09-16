@@ -11,3 +11,7 @@ func (i *Registry) NewAuthHandler() *handler.AuthHandler {
 func (i *Registry) NewTodoHandler() *handler.TodoHandler {
 	return handler.NewTodoHandler(i.NewTodoUseCase())
 }
+
+func (i *Registry) NewUserHandler() *handler.UserHandler {
+	return handler.NewUserHandler(i.NewUserUseCase())
+}

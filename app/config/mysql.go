@@ -29,12 +29,15 @@ func NewMysqlConnection() (*gorm.DB, error) {
 
 func ExecuteMigrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
+		&model.Company{},
+		&model.DepartmentPath{},
+		&model.Department{},
 		&model.PostCode{},
 		&model.Tag{},
 		&model.Todo{},
 		&model.UserAddress{},
-		&model.UserInfo{},
 		&model.User{},
+		&model.UserInfo{},
 	)
 	return err
 }

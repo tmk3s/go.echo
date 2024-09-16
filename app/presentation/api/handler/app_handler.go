@@ -4,4 +4,5 @@ package handler
 type AppHandler struct {
 	AuthHandler AuthHandler
 	TodoHandler TodoHandler
+	UserHandler UserHandler
 }

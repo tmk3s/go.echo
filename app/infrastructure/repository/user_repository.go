@@ -37,19 +37,18 @@ func (r *userRepository) GetByEmailAndPass(email string, password string) (*mode
 	return &user, err
 }
 
-func (r *userRepository) Create(email string, password string) (*model.User, error) {
-	var user model.User
-	user.Email = email
-	user.Password = password
-	// err := r.Conn.Create(user)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	return &user, nil
+func (r *userRepository) Create(user *model.User) (*model.User, error) {
+	if err := r.Conn.Create(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
-func (r *userRepository) Update(u *model.User) (*model.User, error) {
-	return nil, nil
+func (r *userRepository) Update(user *model.User) (*model.User, error) {
+	if err := r.Conn.Save(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (r *userRepository) Delete(id uint) error {

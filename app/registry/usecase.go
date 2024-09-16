@@ -14,3 +14,9 @@ func (i *Registry) NewTodoUseCase() usecase.TodoUseCase {
 		i.NewUserRepository(),
 	)
 }
+
+func (i *Registry) NewUserUseCase() usecase.UserUseCase {
+	return usecase.NewUserUseCase(
+		i.NewUserRepository(),
+	)
+}
