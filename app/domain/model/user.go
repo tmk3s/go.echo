@@ -9,7 +9,7 @@ type User struct {
 	CompanyId uint   `json:"company_id" gorm:"index"`
 	Email     string `json:"email" gorm:"index`
 	Password  string `json:"password"`
-	UserInfo  UserInfo
+	UserInfo  UserInfo `gorm:"foreignKey:UserId"`
 }
 
 func NewUser(email string, password string) *User {

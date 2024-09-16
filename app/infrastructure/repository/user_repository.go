@@ -17,7 +17,7 @@ func NewUserRepository(conn *gorm.DB) repository.UserRepository {
 func (r *userRepository) GetById(id uint) (*model.User, error) {
 	// (type) is not an expression => 初期化しないと出る {} or new
 	user := &model.User{}
-	err := r.Conn.First(user, id).Error
+	err := r.Conn.Preload("UserInfo").First(user, id).Error
 	if err != nil {
 		return nil, err
 	}

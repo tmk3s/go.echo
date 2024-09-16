@@ -6,6 +6,9 @@
           <div className='h-16 font-bold pt-5 pl-3'>共通設定</div>
           <ul className=''>
             <li className='h-10 pt-2 pl-3 dark:hover:bg-gray-700'>
+              <a className='w-full h-full top-0 bottom-0 block' href="/mypage">マイページ</a>
+            </li>
+            <li className='h-10 pt-2 pl-3 dark:hover:bg-gray-700'>
               <a className='w-full h-full top-0 bottom-0 block' href="/setting">会社情報設定</a>
             </li>
             <li className='h-10 pt-2 pl-3 dark:hover:bg-gray-700'>
