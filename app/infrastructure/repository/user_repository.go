@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"app/domain/model"
 	"app/domain/repository"
 	"gorm.io/gorm"
@@ -28,13 +30,16 @@ func (r *userRepository) GetByEmailAndPass(email string, password string) (*mode
 	var user model.User
 	query := r.Conn.Where("")
 	query = query.Where(model.User{Email: email, Password: password})
-	err := query.Find(&user).Error
-	if err != nil {
+	
+	if err := query.First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		// https://stackoverflow.com/questions/57465968/cannot-use-nil-value-as-a-return-of-type-struct
 		// return model.User{}, echo.ErrNotFound
 		return nil, err
 	}
-	return &user, err
+	return &user, nil
 }
 
 func (r *userRepository) Create(user *model.User) (*model.User, error) {

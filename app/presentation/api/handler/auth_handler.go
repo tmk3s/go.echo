@@ -95,6 +95,7 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("%s", err)
 
 	if user == nil {
 		return &echo.HTTPError{

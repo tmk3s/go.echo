@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import RootLayout from '@/components/RootLayout';
 
-export default () => {
+const Departments = () => {
   useEffect(()=>{
 	  console.log(1)
   },[])
@@ -18,3 +18,4 @@ export default () => {
   )
 }
   
+export default Departments

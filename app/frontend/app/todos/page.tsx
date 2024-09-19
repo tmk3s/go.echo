@@ -147,7 +147,7 @@ const Todos =  () => {
 
   useEffect(() => {
     fetchTodos();
-  }, [])
+  }, [fetchTodos])
 
   return (
     <RootLayout>

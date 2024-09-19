@@ -19,8 +19,10 @@ const SignIn = () => {
       // https://sheltie-garage.xyz/tech/2023/07/cookie%E3%81%8C%E3%81%AA%E3%81%8B%E3%81%AA%E3%81%8B%E3%81%A7%E3%81%8D%E3%81%9A%E3%81%AB%E3%83%8F%E3%83%9E%E3%81%A3%E3%81%9F%E8%A9%B1/
       const response = await axios.post('/sign_in', { email: email, password: password }, { withCredentials: true });
       console.log(response);
-      router.push('/todos');
-    } catch (e) {
+      router.push('/mypage');
+    } catch (e: any) {
+      setUnauthorizedError(e.response.data.message);
+      setOpenErrorToast(true)
       console.error(e);
     }
   }
