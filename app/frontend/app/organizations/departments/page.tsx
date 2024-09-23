@@ -115,18 +115,18 @@ const Departments = () => {
             }>
             追加
           </button>
-          <div className="grid lg:grid-cols-4 md:grid-cols-3 xs:grid-cols-2 gap-4 text-center">
+          <div className="grid">
           {
             departments?.map((department: any) => {
               return (
-                <div key={department.ID}>
+                <div key={department.ID} className='grid-rows-12  dark:hover:bg-gray-700'>
                   <p
                     onClick={() => {
                       setTargetDepartment(department)
                       setOpenModal(true)}
                     }
                   >
-                    {department.ID} - {department.name}
+                    {'-'.repeat(department.depth)}{department.name}
                   </p>
                 </div>
               )

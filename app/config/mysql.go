@@ -30,8 +30,8 @@ func NewMysqlConnection() (*gorm.DB, error) {
 func ExecuteMigrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&model.Company{},
-		&model.DepartmentPath{},
 		&model.Department{},
+		&model.DepartmentPath{},
 		&model.PostCode{},
 		&model.Tag{},
 		&model.Todo{},

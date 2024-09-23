@@ -24,6 +24,8 @@ func (u *departmentUseCase) GetDepartments(companyId uint) (*[]model.Department,
 	if err != nil {
 		return nil, err
 	}
+
+	
 	return &departments, nil
 }
 
