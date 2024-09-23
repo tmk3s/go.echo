@@ -12,3 +12,7 @@ func (i *Registry) NewUserRepository() repository.UserRepository {
 func (i *Registry) NewTodoRepository() repository.TodoRepository {
 	return repositoryImpl.NewTodoRepository(i.DbConn)
 }
+
+func (i *Registry) NewDepartmentRepository() repository.DepartmentRepository {
+	return repositoryImpl.NewDepartmentRepository(i.DbConn)
+}

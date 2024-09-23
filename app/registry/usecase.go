@@ -20,3 +20,9 @@ func (i *Registry) NewUserUseCase() usecase.UserUseCase {
 		i.NewUserRepository(),
 	)
 }
+
+func (i *Registry) NewDepartmentUseCase() usecase.DepartmentUseCase {
+	return usecase.NewDepartmentUseCase(
+		i.NewDepartmentRepository(),
+	)
+}

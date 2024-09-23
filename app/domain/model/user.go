@@ -6,9 +6,9 @@ import (
 
 type User struct {
 	gorm.Model
-	CompanyId uint   `json:"company_id" gorm:"index"`
-	Email     string `json:"email" gorm:"index`
-	Password  string `json:"password"`
+	CompanyId uint     `json:"company_id" gorm:"index"`
+	Email     string   `json:"email" gorm:"index`
+	Password  string   `json:"password"`
 	UserInfo  UserInfo `gorm:"foreignKey:UserId"`
 }
 

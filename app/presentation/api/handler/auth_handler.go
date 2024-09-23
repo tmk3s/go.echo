@@ -23,8 +23,9 @@ func NewAuthHandler(u usecase.AuthUseCase) *AuthHandler {
 // jwtCustomClaims are custom claims extending default ones.
 // See https://github.com/golang-jwt/jwt for more examples
 type jwtCustomClaims struct {
-	Id    uint   `json:"id"`
-	Email string `json:"email"`
+	Id        uint   `json:"id"`
+	Email     string `json:"email"`
+	CompanyId uint   `json:"company_id"`
 	jwt.RegisteredClaims
 }
 
@@ -107,6 +108,7 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
 	claims := &jwtCustomClaims{
 		user.ID,
 		user.Email,
+		user.CompanyId,
 		jwt.RegisteredClaims{
 			// https://github.com/golang-jwt/jwt/blob/main/example_test.go
 			ExpiresAt: jwt.NewNumericDate(time.Unix(time.Now().Add(time.Hour*72).Unix(), 0)),

@@ -10,3 +10,9 @@ func CurrentUserId(c echo.Context) uint {
 	claims := user.Claims.(*jwtCustomClaims)
 	return claims.Id
 }
+
+func CurrentCompanyId(c echo.Context) uint {
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(*jwtCustomClaims)
+	return claims.CompanyId
+}

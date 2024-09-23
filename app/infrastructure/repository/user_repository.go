@@ -30,7 +30,7 @@ func (r *userRepository) GetByEmailAndPass(email string, password string) (*mode
 	var user model.User
 	query := r.Conn.Where("")
 	query = query.Where(model.User{Email: email, Password: password})
-	
+
 	if err := query.First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
