@@ -4,6 +4,7 @@ import Axios from 'axios';
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from 'react';
 import RootLayout from '@/components/RootLayout';
+import {Form, PrimaryBtn, DefaultBtn, GreenBtn, RedBtn} from '@/consts/styles';
 import newApiInstance from "../../api"
 
 
@@ -41,7 +42,7 @@ const Modal = ({obj, onSubmit, setOpenModal}: {obj: department | null, onSubmit:
             {/* <!-- Modal body --> */}
             <div className="p-4 md:p-5 space-y-4">
               <input type="hidden" id="parentId" {...register("parentId")} />
-              <textarea
+              <input
                 id="name"
                 className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 required
@@ -51,10 +52,10 @@ const Modal = ({obj, onSubmit, setOpenModal}: {obj: department | null, onSubmit:
             {/* <!-- Modal footer --> */}
             <div className="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
               <button type="submit" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
-                Save
+                保存する
               </button>
               <button type="button" onClick={() => setOpenModal(false)} className="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
-                Cancel
+                キャンセル
               </button>
             </div>
           </div>
@@ -68,6 +69,25 @@ const Departments = () => {
   const [openModal, setOpenModal] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [targetDepartment, setTargetDepartment] = useState(null);
+
+  const calcDepth = (depth: number) => {
+    // Tailwind がクラス名を抽出する方法の最も重要な点は、 ソースファイル中に完全な文字列として存在するクラスのみを検出することです。
+    // もし、文字列の補間をしたり、クラス名の一部を連結したりすると、Tailwind はそれを見つけられず、対応する CSS を生成することができません。
+    switch (depth) {
+      case 0:
+        return 'ml-[20px]'
+      case 1:
+        return 'ml-[40px]'
+      case 2:
+        return 'ml-[60px]'
+      case 3:
+        return 'ml-[80px]'
+      case 4:
+        return 'ml-[100px]'
+      default:
+        return 'ml-[20px]'
+    }
+  }
 
   const fetchDepartments = async () => {
     try {
@@ -91,7 +111,7 @@ const Departments = () => {
       })
   
       console.log(response);
-      setDepartments(response.data);
+      fetchDepartments();
       setOpenModal(false);
     } catch (e) {
       console.log(e);
@@ -107,32 +127,59 @@ const Departments = () => {
       <RootLayout>
         <>
           <h1 className='text-3xl font-bold'>部署情報</h1>
-          <button
-            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            onClick={() => {
-              setTargetDepartment(null)
-              setOpenModal(true)}
-            }>
-            追加
-          </button>
-          <div className="grid">
-          {
-            departments?.map((department: any) => {
-              return (
-                <div key={department.ID} className='grid-rows-12  dark:hover:bg-gray-700'>
-                  <p
-                    onClick={() => {
-                      setTargetDepartment(department)
-                      setOpenModal(true)}
-                    }
-                  >
-                    {'-'.repeat(department.depth)}{department.name}
-                  </p>
-                </div>
-              )
-            })
-          }
-          </div> 
+          <div className='mt-8 mb-8'>
+            <button
+              className={PrimaryBtn}
+              onClick={() => {
+                setTargetDepartment(null)
+                setOpenModal(true)}
+              }>
+              新規に部署を追加
+            </button>
+          </div>
+          <div className={`rounded-md shadow-md dark:bg-gray-900 dark:border-gray-700`}>
+            <div className='grid grid-cols-12 pt-5 pb-5 border-b border-gray-200 dark:bg-gray-950 dark:border-gray-600'>
+              <div className='col-span-10 ml-5'>部署名</div>
+              <div className='mr-5'>操作</div>
+            </div>
+            <div>
+              {
+                departments?.map((department: any, index: number) => {
+                  return (
+                    <div key={index} className='grid grid-cols-12 gap-2 mt-3 mb-3'>
+                      <div className={`${calcDepth(department.depth)} col-span-9 dark:border-gray-600`}>
+                        {department.name}
+                      </div>
+                      <button
+                        className={`${DefaultBtn} col-span-1`}
+                        onClick={() => {
+                          setTargetDepartment(department)
+                          setOpenModal(true)}
+                        }>
+                        追加
+                      </button>
+                      <button
+                        className={`${GreenBtn} col-span-1`}
+                        onClick={() => {
+                          setTargetDepartment(department)
+                          setOpenModal(true)}
+                        }>
+                        更新
+                      </button>
+                      <button
+                        className={`${RedBtn} col-span-1`}
+                        onClick={() => {
+                          setTargetDepartment(department)
+                          setOpenModal(true)}
+                        }>
+                        削除
+                      </button>
+                    </div>
+                  )
+                })
+              }
+            </div>
+          </div>
         </>
       </RootLayout>
       { openModal && (

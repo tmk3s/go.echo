@@ -6,6 +6,6 @@ import (
 
 type DepartmentPath struct {
 	gorm.Model
-	Ancestor   uint `json:"ancestor" gorm:"index"`
-	Descendant uint `json:"descendant" gorm:"index"`
+	AncestorId   uint `json:"ancestor_id" gorm:"index"`
+	DescendantId uint `json:"descendant_id" gorm:"index"`
 }
