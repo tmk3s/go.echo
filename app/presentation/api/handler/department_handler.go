@@ -14,13 +14,14 @@ type DepartmentHandler struct {
 	usecase.DepartmentUseCase
 }
 
-type DepartmentPath struct {
-	ID string `param:"id"`
-}
-
 type DepartmentCreateParams struct {
 	Name     string
 	ParentId *uint `json:"parent_id"` // null許容のため
+}
+
+type DepartmentUpdateParams struct {
+	Id   		 uint   `json:"id" param:"id"`
+	Name     string `json:"name"`
 }
 
 func NewDepartmentHandler(u usecase.DepartmentUseCase) *DepartmentHandler {
@@ -46,6 +47,20 @@ func (h *DepartmentHandler) Create(c echo.Context) error {
 
 	companyId := CurrentCompanyId(c)
 	err := h.DepartmentUseCase.Create(companyId, params.Name, params.ParentId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+
+func (h *DepartmentHandler) Update(c echo.Context) error {
+	fmt.Println("call Update")
+	var params DepartmentUpdateParams
+	if err := c.Bind(&params); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	err := h.DepartmentUseCase.Update(params.Id, params.Name)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

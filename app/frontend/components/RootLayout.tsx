@@ -31,7 +31,7 @@
             </li>
           </ul>
         </div>
-        <div className='m-16 lg:w-[960px]'>
+        <div className='m-16 lg:w-[1920px]'>
           {children}
         </div> 
       </div> 

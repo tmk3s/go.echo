@@ -17,6 +17,15 @@ func NewDepartmentRepository(Conn *gorm.DB) repository.DepartmentRepository {
 	return &departmentRepository{Conn}
 }
 
+func (r *departmentRepository) GetById(id uint) (*model.Department, error) {
+	department := &model.Department{}
+	err := r.Conn.First(department, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return department, nil
+}
+
 func (r *departmentRepository) GetList(companyId uint) ([]model.Department, error) {
 	var departments []model.Department
 	query := r.Conn.Where("")
@@ -108,16 +117,16 @@ func (r *departmentRepository) Create(department *model.Department, parentId *ui
 	return department, nil
 }
 
-// func (r *departmentRepository) Update(department *model.Department) (*model.Department, error) {
-// 	if err := r.Conn.Save(department).Error; err != nil {
-// 		return nil, err
-// 	}
-// 	return department, nil
-// }
+func (r *departmentRepository) Update(department *model.Department) (*model.Department, error) {
+	if err := r.Conn.Save(department).Error; err != nil {
+		return nil, err
+	}
+	return department, nil
+}
 
-// func (r *departmentRepository) Delete(department *model.Department) error {
-// 	if err := r.Conn.Delete(department).Error; err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+func (r *departmentRepository) Delete(department *model.Department) error {
+	if err := r.Conn.Delete(department).Error; err != nil {
+		return err
+	}
+	return nil
+}

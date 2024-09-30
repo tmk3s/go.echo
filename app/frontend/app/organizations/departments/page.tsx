@@ -14,7 +14,7 @@ type department = {
   parentId: number | null
 }
 
-const Modal = ({obj, onSubmit, setOpenModal}: {obj: department | null, onSubmit: any, setOpenModal: any } ): React.ReactNode => {
+const Modal = ({obj, onSubmit, mode, setOpenModal}: {obj: department | null, onSubmit: any, mode: string, setOpenModal: any } ): React.ReactNode => {
   const {
     register,
     handleSubmit,
@@ -22,18 +22,18 @@ const Modal = ({obj, onSubmit, setOpenModal}: {obj: department | null, onSubmit:
     formState: { errors }
   } = useForm({
     defaultValues: {
+      ID: obj?.ID,
       parentId: obj?.ID,
-      name: '',
+      name: mode === 'create' ? null : obj?.name,
     }
   });
 
-
   return (
-    <div className="overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div className="overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-5rem)] max-h-full">
       <form
         className="max-w-sm mx-auto"
         onSubmit={handleSubmit((data) => {
-          onSubmit({parentId: data.parentId, name: data.name});
+          onSubmit({ID: data.ID, parentId: data.parentId, name: data.name});
         })}
       >
         <div className="relative p-4 w-full max-w-2xl max-h-full">
@@ -50,7 +50,7 @@ const Modal = ({obj, onSubmit, setOpenModal}: {obj: department | null, onSubmit:
               />
             </div>
             {/* <!-- Modal footer --> */}
-            <div className="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+            <div className="flex justify-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
               <button type="submit" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                 保存する
               </button>
@@ -66,7 +66,8 @@ const Modal = ({obj, onSubmit, setOpenModal}: {obj: department | null, onSubmit:
 }
 
 const Departments = () => {
-  const [openModal, setOpenModal] = useState(false);
+  const [openCreateModal, setCreateOpenModal] = useState(false);
+  const [openUpdateModal, setUpdateOpenModal] = useState(false);
   const [departments, setDepartments] = useState([]);
   const [targetDepartment, setTargetDepartment] = useState(null);
 
@@ -84,6 +85,10 @@ const Departments = () => {
         return 'ml-[80px]'
       case 4:
         return 'ml-[100px]'
+      case 5:
+        return 'ml-[120px]'
+      case 6:
+        return 'ml-[140px]'
       default:
         return 'ml-[20px]'
     }
@@ -112,7 +117,37 @@ const Departments = () => {
   
       console.log(response);
       fetchDepartments();
-      setOpenModal(false);
+      setCreateOpenModal(false);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  const updateDepartment = async (obj: department) => {
+    try {
+      const api = newApiInstance();
+      // const formData = new FormData(); 数値が扱えないので使用しない
+      const response = await api.put(`/api/departments/${obj.ID}`, {
+        name: obj.name
+      })
+  
+      console.log(response);
+      fetchDepartments();
+      setUpdateOpenModal(false);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  const deleteDepartment = async (obj: department) => {
+    try {
+      const api = newApiInstance();
+      // const formData = new FormData(); 数値が扱えないので使用しない
+      const response = await api.delete(`/api/departments/${obj.ID}`)
+  
+      console.log(response);
+      fetchDepartments();
+      setUpdateOpenModal(false);
     } catch (e) {
       console.log(e);
     }
@@ -132,7 +167,7 @@ const Departments = () => {
               className={PrimaryBtn}
               onClick={() => {
                 setTargetDepartment(null)
-                setOpenModal(true)}
+                setCreateOpenModal(true)}
               }>
               新規に部署を追加
             </button>
@@ -147,14 +182,14 @@ const Departments = () => {
                 departments?.map((department: any, index: number) => {
                   return (
                     <div key={index} className='grid grid-cols-12 gap-2 mt-3 mb-3'>
-                      <div className={`${calcDepth(department.depth)} col-span-9 dark:border-gray-600`}>
-                        {department.name}
+                      <div className={`${calcDepth(department.depth)} grid-cols-9 col-span-9 dark:border-gray-600 break-words`}>
+                        <span className='text-wrap'>{department.name}</span>
                       </div>
                       <button
                         className={`${DefaultBtn} col-span-1`}
                         onClick={() => {
                           setTargetDepartment(department)
-                          setOpenModal(true)}
+                          setCreateOpenModal(true)}
                         }>
                         追加
                       </button>
@@ -162,15 +197,15 @@ const Departments = () => {
                         className={`${GreenBtn} col-span-1`}
                         onClick={() => {
                           setTargetDepartment(department)
-                          setOpenModal(true)}
+                          setUpdateOpenModal(true)}
                         }>
-                        更新
+                        編集
                       </button>
                       <button
                         className={`${RedBtn} col-span-1`}
                         onClick={() => {
                           setTargetDepartment(department)
-                          setOpenModal(true)}
+                          setUpdateOpenModal(true)}
                         }>
                         削除
                       </button>
@@ -182,8 +217,21 @@ const Departments = () => {
           </div>
         </>
       </RootLayout>
-      { openModal && (
-        <Modal obj={targetDepartment} onSubmit={createDepartment} setOpenModal={setOpenModal} />
+      { openCreateModal && (
+        <Modal
+          mode='create'
+          obj={targetDepartment}
+          onSubmit={createDepartment}
+          setOpenModal={setCreateOpenModal} 
+        />
+      )}
+      { openUpdateModal && (
+        <Modal
+          mode='update'
+          obj={targetDepartment}
+          onSubmit={updateDepartment}
+          setOpenModal={setUpdateOpenModal} 
+        />
       )}
     </main>  
   )

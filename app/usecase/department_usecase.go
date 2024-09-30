@@ -9,6 +9,7 @@ import (
 type DepartmentUseCase interface {
 	GetDepartments(companyId uint) (*[]model.Department, error)
 	Create(companyId uint, name string, parentId *uint) error
+	Update(id uint, name string) error
 }
 
 type departmentUseCase struct {
@@ -32,6 +33,18 @@ func (u *departmentUseCase) Create(companyId uint, name string, parentId *uint) 
 	department := model.NewDepartment(companyId, name)
 	_, err := u.DepartmentRepository.Create(department, parentId)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *departmentUseCase) Update(id uint, name string) error {
+	department, err := u.DepartmentRepository.GetById(id)
+	if err != nil {
+		return err
+	}
+	department.Name = name
+	if _, err := u.DepartmentRepository.Update(department); err != nil {
 		return err
 	}
 	return nil
