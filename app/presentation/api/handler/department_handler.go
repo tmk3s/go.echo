@@ -24,6 +24,10 @@ type DepartmentUpdateParams struct {
 	Name     string `json:"name"`
 }
 
+type DepartmentDeleteParams struct {
+	Id   		 uint   `json:"id" param:"id"`
+}
+
 func NewDepartmentHandler(u usecase.DepartmentUseCase) *DepartmentHandler {
 	return &DepartmentHandler{u}
 }
@@ -61,6 +65,20 @@ func (h *DepartmentHandler) Update(c echo.Context) error {
 	}
 
 	err := h.DepartmentUseCase.Update(params.Id, params.Name)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+
+func (h *DepartmentHandler) Delete(c echo.Context) error {
+	fmt.Println("call Delete")
+	var params DepartmentDeleteParams
+	if err := c.Bind(&params); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	err := h.DepartmentUseCase.Delete(params.Id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

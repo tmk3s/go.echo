@@ -1,5 +1,7 @@
 // 参考 https://flowbite.com/docs/components/buttons/
 export const Form = 'rounded-md shadow-md dark:bg-gray-900 dark:border-gray-700';
+// https://coliss.com/articles/build-websites/operation/css/centering-in-css.html
+export const BaseModal = 'flex fixed z-50 inset-0 justify-center items-center';
 export const PrimaryBtn = 'text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800';
 export const DefaultBtn = 'text-blue-700 hover:text-white border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg text-sm text-center me-2 mb-2 dark:border-blue-500 dark:text-blue-500 dark:hover:text-white dark:hover:bg-blue-500 dark:focus:ring-blue-800">Default';
 export const GreenBtn = 'text-green-700 hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm text-center me-2 mb-2 dark:border-green-500 dark:text-green-500 dark:hover:text-white dark:hover:bg-green-600 dark:focus:ring-green-800'

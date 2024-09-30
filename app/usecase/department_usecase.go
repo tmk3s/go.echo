@@ -10,6 +10,7 @@ type DepartmentUseCase interface {
 	GetDepartments(companyId uint) (*[]model.Department, error)
 	Create(companyId uint, name string, parentId *uint) error
 	Update(id uint, name string) error
+	Delete(id uint) error
 }
 
 type departmentUseCase struct {
@@ -45,6 +46,17 @@ func (u *departmentUseCase) Update(id uint, name string) error {
 	}
 	department.Name = name
 	if _, err := u.DepartmentRepository.Update(department); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (u *departmentUseCase) Delete(id uint) error {
+	department, err := u.DepartmentRepository.GetById(id)
+	if err != nil {
+		return err
+	}
+	if err := u.DepartmentRepository.Delete(department); err != nil {
 		return err
 	}
 	return nil

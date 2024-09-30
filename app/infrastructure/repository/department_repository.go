@@ -28,13 +28,15 @@ func (r *departmentRepository) GetById(id uint) (*model.Department, error) {
 
 func (r *departmentRepository) GetList(companyId uint) ([]model.Department, error) {
 	var departments []model.Department
-	query := r.Conn.Where("")
+	query := r.Conn.Where(model.Department{CompanyId: companyId}).
+									Select("id, name, depth").
+									Order("order_no")
 	// 構造体でクエリを実行する場合、GORM はゼロ以外のフィールドでのみクエリを実行します。つまり、フィールドの値が0、''、falseまたはその他のゼロ値である場合、そのフィールドはクエリ条件の構築に使用されません
 	// query = query.Where(model.Department{CompanyId: companyId}, "CompanyId", "Depth").Preload("Ancestors").Preload("Descendants", "ancestor_id != descendant_id").Preload("Descendants.Department")
 	// query = query.Where(model.Department{CompanyId: companyId}).Preload("Ancestors", "ancestor_id != descendant_id").Preload("Descendants", "ancestor_id != descendant_id")
-	// err := query.Find(&departments).Error
-	query = query.Raw("SELECT id, name, depth FROM departments WHERE company_id = ? ORDER BY order_no", companyId)
-	err := query.Scan(&departments).Error
+	err := query.Find(&departments).Error
+	// query = query.Raw("SELECT id, name, depth FROM departments WHERE company_id = ? ORDER BY order_no", companyId)
+	// err := query.Scan(&departments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +127,40 @@ func (r *departmentRepository) Update(department *model.Department) (*model.Depa
 }
 
 func (r *departmentRepository) Delete(department *model.Department) error {
-	if err := r.Conn.Delete(department).Error; err != nil {
-		return err
+	// 子孫を取得
+	descendantPaths := []model.DepartmentPath{}
+	if result := r.Conn.Where(model.DepartmentPath{AncestorId: department.ID}).Find(&descendantPaths); errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return gorm.ErrRecordNotFound
 	}
+	// 先祖を取得
+	ancestorPaths := []model.DepartmentPath{}
+	if result := r.Conn.Where(model.DepartmentPath{DescendantId: department.ID}).Find(&ancestorPaths); errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return gorm.ErrRecordNotFound
+	}
+	// 子孫のマスタを取得
+	descendants := []model.Department{}
+	var descendantIds []uint
+	for _, descendant := range descendantPaths {
+		descendantIds = append(descendantIds, descendant.DescendantId)
+	}
+	if result := r.Conn.Table("departments").Where("departments.id IN (?)", descendantIds).Find(&descendants); errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return gorm.ErrRecordNotFound
+	}
+
+	r.Conn.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&ancestorPaths).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&descendantPaths).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&descendants).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(department).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 	return nil
 }
