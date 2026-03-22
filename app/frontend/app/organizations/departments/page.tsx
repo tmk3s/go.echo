@@ -2,9 +2,10 @@
 
 import Axios from 'axios';
 import { useForm } from "react-hook-form";
+import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react';
 import RootLayout from '@/components/RootLayout';
-import {Form, PrimaryBtn, DefaultBtn, GreenBtn, RedBtn, BaseModal} from '@/consts/styles';
+import {Form, PrimaryBtn, DefaultBtn, GreenBtn, RedBtn, DarkBtn, BaseModal} from '@/consts/styles';
 import newApiInstance from "../../api"
 
 
@@ -64,6 +65,7 @@ const Modal = ({obj, onSubmit, mode, setOpenModal}: {obj: department | null, onS
 }
 
 const Departments = () => {
+  const router = useRouter();
   const [openCreateModal, setCreateOpenModal] = useState(false);
   const [openUpdateModal, setUpdateOpenModal] = useState(false);
   const [openDeleteModal, setDeleteOpenModal] = useState(false);
@@ -169,6 +171,13 @@ const Departments = () => {
                 setCreateOpenModal(true)}
               }>
               新規に部署を追加
+            </button>
+            <button
+              className={`${DarkBtn} px-5 py-2.5 ml-8` }
+              onClick={() => {
+                router.push('/organizations/departments/csv')
+              }}>
+              一括操作
             </button>
           </div>
           <div className={`rounded-md shadow-md dark:bg-gray-900 dark:border-gray-700`}>

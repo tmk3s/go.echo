@@ -24,5 +24,6 @@ func (i *Registry) NewUserUseCase() usecase.UserUseCase {
 func (i *Registry) NewDepartmentUseCase() usecase.DepartmentUseCase {
 	return usecase.NewDepartmentUseCase(
 		i.NewDepartmentRepository(),
+		i.NewCsvService(),
 	)
 }

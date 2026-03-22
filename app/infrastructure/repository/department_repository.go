@@ -147,6 +147,7 @@ func (r *departmentRepository) Delete(department *model.Department) error {
 		return gorm.ErrRecordNotFound
 	}
 
+	// 空ぶる可能性があるのでギャップロック考慮するならチェックした方がいい？？
 	r.Conn.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Delete(&ancestorPaths).Error; err != nil {
 			return err

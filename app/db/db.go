@@ -2,17 +2,11 @@ package db
 
 import (
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-	// "gorm.io/driver/sqlite"
-	"gorm.io/driver/mysql"
-
-	"app/domain/model"
 )
 
 var db *gorm.DB
 
 func init() {
-	var err error
 	// newLogger := logger.New(
 	//   log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
 	//   logger.Config{
