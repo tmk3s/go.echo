@@ -29,6 +29,7 @@ func SteupRouter(e *echo.Echo, h handler.AppHandler) {
 	api.POST("/department", h.DepartmentHandler.Create)
 	api.PUT("/departments/:id", h.DepartmentHandler.Update)
 	api.DELETE("/departments/:id", h.DepartmentHandler.Delete)
+	api.POST("/departments/upload", h.DepartmentHandler.Upload)
 
 	api.GET("/user", h.UserHandler.Index)
 	api.PUT("/user", h.UserHandler.Update)

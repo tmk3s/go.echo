@@ -84,3 +84,18 @@ func (h *DepartmentHandler) Delete(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, nil)
 }
+
+func (h *DepartmentHandler) Upload(c echo.Context) error {
+	fmt.Println("call Upload")
+	file, fileHeader, err := c.Request().FormFile("file")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	defer file.Close()
+
+	companyId := CurrentCompanyId(c)
+	if err := h.DepartmentUseCase.Upload(companyId, file, fileHeader); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, nil)
+}
