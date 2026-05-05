@@ -18,6 +18,9 @@
               <a className='w-full h-full top-0 bottom-0 block' href="#">給与情報設定</a>
             </li>
             <li className='h-10 pt-2 pl-3 dark:hover:bg-gray-700'>
+              <a className='w-full h-full top-0 bottom-0 block' href="/employees">社員一覧</a>
+            </li>
+            <li className='h-10 pt-2 pl-3 dark:hover:bg-gray-700'>
               <a className='w-full h-full top-0 bottom-0 block' href="/organizations">組織情報設定</a>
             </li>
             <li className='h-10 pt-2 pl-3 dark:hover:bg-gray-700'>

@@ -6,4 +6,6 @@ type AppHandler struct {
 	TodoHandler       TodoHandler
 	UserHandler       UserHandler
 	DepartmentHandler DepartmentHandler
+	EmployeeHandler   EmployeeHandler
+	PrefectureHandler PrefectureHandler
 }

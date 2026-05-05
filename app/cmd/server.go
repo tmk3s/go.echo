@@ -37,6 +37,16 @@ func main() {
 		// 	echo.HeaderAuthorization,
 		// },
 	}))
+	// ChromeのPrivate Network Access対応
+	// localhost間通信でAccess-Control-Allow-Private-Network: trueが必要
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if c.Request().Header.Get("Access-Control-Request-Private-Network") == "true" {
+				c.Response().Header().Set("Access-Control-Allow-Private-Network", "true")
+			}
+			return next(c)
+		}
+	})
 
 	dbConnection, err := config.NewMysqlConnection()
 	if err != nil {

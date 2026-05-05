@@ -19,3 +19,11 @@ func (i *Registry) NewUserHandler() *handler.UserHandler {
 func (i *Registry) NewDepartmentHandler() *handler.DepartmentHandler {
 	return handler.NewDepartmentHandler(i.NewDepartmentUseCase())
 }
+
+func (i *Registry) NewEmployeeHandler() *handler.EmployeeHandler {
+	return handler.NewEmployeeHandler(i.NewEmployeeUseCase())
+}
+
+func (i *Registry) NewPrefectureHandler() *handler.PrefectureHandler {
+	return handler.NewPrefectureHandler(i.NewPrefectureUseCase())
+}

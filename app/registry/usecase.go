@@ -27,3 +27,11 @@ func (i *Registry) NewDepartmentUseCase() usecase.DepartmentUseCase {
 		i.NewCsvService(),
 	)
 }
+
+func (i *Registry) NewEmployeeUseCase() usecase.EmployeeUseCase {
+	return usecase.NewEmployeeUseCase(i.NewEmployeeRepository())
+}
+
+func (i *Registry) NewPrefectureUseCase() usecase.PrefectureUseCase {
+	return usecase.NewPrefectureUseCase(i.NewPrefectureRepository())
+}

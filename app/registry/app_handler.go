@@ -11,6 +11,8 @@ func (i *Registry) NewAppHandler() *handler.AppHandler {
 		TodoHandler:       *i.NewTodoHandler(),
 		UserHandler:       *i.NewUserHandler(),
 		DepartmentHandler: *i.NewDepartmentHandler(),
+		EmployeeHandler:   *i.NewEmployeeHandler(),
+		PrefectureHandler: *i.NewPrefectureHandler(),
 	}
 	return appHandler
 }

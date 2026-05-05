@@ -21,7 +21,7 @@ const SignIn = () => {
       console.log(response);
       router.push('/mypage');
     } catch (e: any) {
-      setUnauthorizedError(e.response.data.message);
+      setUnauthorizedError(e.response?.data?.message ?? 'ネットワークエラーが発生しました');
       setOpenErrorToast(true)
       console.error(e);
     }
