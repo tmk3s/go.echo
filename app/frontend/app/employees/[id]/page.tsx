@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RootLayout from '@/components/RootLayout';
 import useApi from '@/app/api';
@@ -35,6 +35,7 @@ type EmployeeTenure = {
 type Department = {
   ID: number;
   name: string;
+  depth: number;
 };
 
 type EmployeeDetail = {
@@ -43,6 +44,18 @@ type EmployeeDetail = {
   Tenures: EmployeeTenure[];
   Departments: Department[];
 };
+
+// order_no順の全部署リストから id → "親 / 子" ラベルのマップを生成
+function buildDeptLabelMap(allDepts: Department[]): Map<number, string> {
+  const stack: string[] = [];
+  const map = new Map<number, string>();
+  for (const dept of allDepts) {
+    stack.length = dept.depth;
+    stack.push(dept.name);
+    map.set(dept.ID, stack.join(' / '));
+  }
+  return map;
+}
 
 const Row = ({ label, value }: { label: string; value: string | null | undefined }) => (
   <tr className='border-b dark:border-gray-700'>
@@ -74,12 +87,19 @@ const EmployeeDetailPage = () => {
   const router = useRouter();
   const api = useApi();
   const [detail, setDetail] = useState<EmployeeDetail | null>(null);
+  const [allDepts, setAllDepts] = useState<Department[]>([]);
 
   useEffect(() => {
-    api.get(`/api/employees/${id}`).then((res) => {
-      setDetail(res.data);
+    Promise.all([
+      api.get(`/api/employees/${id}`),
+      api.get('/api/departments'),
+    ]).then(([detailRes, deptRes]) => {
+      setDetail(detailRes.data);
+      setAllDepts(deptRes.data ?? []);
     });
   }, [id]);
+
+  const deptLabelMap = useMemo(() => buildDeptLabelMap(allDepts), [allDepts]);
 
   if (!detail) {
     return (
@@ -177,7 +197,7 @@ const EmployeeDetailPage = () => {
             <tbody>
               {Departments.map((dept) => (
                 <tr key={dept.ID} className='border-b dark:border-gray-700'>
-                  <td className='px-6 py-3'>{dept.name}</td>
+                  <td className='px-6 py-3'>{deptLabelMap.get(dept.ID) ?? dept.name}</td>
                 </tr>
               ))}
             </tbody>

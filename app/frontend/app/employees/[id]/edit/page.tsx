@@ -29,8 +29,19 @@ type TenureForm = {
   status: string;
 };
 
-type Department = { ID: number; name: string };
+type Department = { ID: number; name: string; depth: number };
+type DepartmentOption = { id: number; label: string };
 type Prefecture = { ID: number; name: string };
+
+// order_no順に並んだ部署リストから depth を使って "親 / 子" 形式のラベルを生成
+function buildDepartmentOptions(departments: Department[]): DepartmentOption[] {
+  const stack: string[] = [];
+  return departments.map((dept) => {
+    stack.length = dept.depth;
+    stack.push(dept.name);
+    return { id: dept.ID, label: stack.join(' / ') };
+  });
+}
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className='mt-6'>
@@ -54,8 +65,8 @@ const EmployeeEditPage = () => {
   const api = useApi();
 
   const [tenures, setTenures] = useState<TenureForm[]>([]);
-  const [allDepartments, setAllDepartments] = useState<Department[]>([]);
-  const [selectedDeptIds, setSelectedDeptIds] = useState<Set<number>>(new Set());
+  const [departmentOptions, setDepartmentOptions] = useState<DepartmentOption[]>([]);
+  const [selectedDeptIds, setSelectedDeptIds] = useState<(number | null)[]>([null]);
   const [prefectures, setPrefectures] = useState<Prefecture[]>([]);
 
   const { register, handleSubmit, reset } = useForm<FormValues>();
@@ -93,8 +104,9 @@ const EmployeeEditPage = () => {
         }))
       );
 
-      setAllDepartments(deptRes.data ?? []);
-      setSelectedDeptIds(new Set((Departments ?? []).map((d: Department) => d.ID)));
+      setDepartmentOptions(buildDepartmentOptions(deptRes.data ?? []));
+      const assignedIds = (Departments ?? []).map((d: Department) => d.ID as number | null);
+      setSelectedDeptIds(assignedIds.length > 0 ? assignedIds : [null]);
       setPrefectures(prefRes.data ?? []);
     });
   }, [id]);
@@ -120,21 +132,13 @@ const EmployeeEditPage = () => {
         resignation_type: t.resignation_type || null,
         status: t.status || null,
       })),
-      department_ids: Array.from(selectedDeptIds),
+      department_ids: selectedDeptIds.filter((id): id is number => id !== null),
     });
     router.push(`/employees/${id}`);
   });
 
   const updateTenureField = (idx: number, field: keyof Omit<TenureForm, 'ID'>, value: string) => {
     setTenures((prev) => prev.map((t, i) => i === idx ? { ...t, [field]: value } : t));
-  };
-
-  const toggleDept = (deptId: number) => {
-    setSelectedDeptIds((prev) => {
-      const next = new Set(prev);
-      next.has(deptId) ? next.delete(deptId) : next.add(deptId);
-      return next;
-    });
   };
 
   return (
@@ -241,18 +245,40 @@ const EmployeeEditPage = () => {
 
         {/* 所属部署 */}
         <Section title='所属部署'>
-          <div className='grid grid-cols-3 gap-2'>
-            {allDepartments.map((dept) => (
-              <label key={dept.ID} className='flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-gray-300'>
-                <input
-                  type='checkbox'
-                  checked={selectedDeptIds.has(dept.ID)}
-                  onChange={() => toggleDept(dept.ID)}
-                  className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-                />
-                {dept.name}
-              </label>
+          <div className='space-y-2'>
+            {selectedDeptIds.map((deptId, idx) => (
+              <div key={idx} className='flex items-center gap-2'>
+                <select
+                  className={inputClass + ' max-w-sm'}
+                  value={deptId ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null;
+                    setSelectedDeptIds((prev) => prev.map((v, i) => i === idx ? val : v));
+                  }}
+                >
+                  <option value=''>選択してください</option>
+                  {departmentOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
+                </select>
+                {selectedDeptIds.length > 1 && (
+                  <button
+                    type='button'
+                    onClick={() => setSelectedDeptIds((prev) => prev.filter((_, i) => i !== idx))}
+                    className='text-red-500 hover:text-red-700 text-lg font-bold px-2'
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
+            <button
+              type='button'
+              onClick={() => setSelectedDeptIds((prev) => [...prev, null])}
+              className='mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1'
+            >
+              ＋ 部署を追加
+            </button>
           </div>
         </Section>
 

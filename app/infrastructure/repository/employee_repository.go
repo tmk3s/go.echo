@@ -37,17 +37,22 @@ func (r *employeeRepository) GetById(companyId uint, id uint) (*model.Employee, 
 
 func (r *employeeRepository) GetAddress(companyId uint, employeeId uint) (*model.EmployeeAddress, error) {
 	address := &model.EmployeeAddress{}
+	// gorm:"-" フィールドは JOIN でもスキャンされないため、prefecture_name は別クエリで取得する
 	err := r.Conn.
-		Select("employee_addresses.*, prefectures.name as prefecture_name").
-		Joins("LEFT JOIN prefectures ON employee_addresses.prefecture_id = prefectures.id AND prefectures.deleted_at IS NULL").
-		Where("employee_addresses.company_id = ? AND employee_addresses.employee_id = ?", companyId, employeeId).
-		Where("employee_addresses.deleted_at IS NULL").
+		Where("company_id = ? AND employee_id = ?", companyId, employeeId).
+		Where("deleted_at IS NULL").
 		First(address).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
+	}
+	if address.PrefectureId != nil {
+		var prefecture model.Prefecture
+		if err := r.Conn.First(&prefecture, *address.PrefectureId).Error; err == nil {
+			address.PrefectureName = &prefecture.Name
+		}
 	}
 	return address, nil
 }
