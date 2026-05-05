@@ -29,7 +29,7 @@ func (i *Registry) NewDepartmentUseCase() usecase.DepartmentUseCase {
 }
 
 func (i *Registry) NewEmployeeUseCase() usecase.EmployeeUseCase {
-	return usecase.NewEmployeeUseCase(i.NewEmployeeRepository())
+	return usecase.NewEmployeeUseCase(i.NewEmployeeRepository(), i.NewCsvService())
 }
 
 func (i *Registry) NewPrefectureUseCase() usecase.PrefectureUseCase {

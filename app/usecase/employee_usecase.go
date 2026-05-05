@@ -1,10 +1,12 @@
 package usecase
 
 import (
+	"mime/multipart"
 	"time"
 
 	"app/domain/model"
 	"app/domain/repository"
+	"app/domain/service"
 	"gorm.io/gorm"
 )
 
@@ -45,14 +47,24 @@ type EmployeeUseCase interface {
 	GetEmployeeDetail(companyId uint, id uint) (*EmployeeDetail, error)
 	Create(companyId uint, lastName string, firstName string, lastNameKana string, firstNameKana string, email string, staffCode string) error
 	UpdateAll(companyId uint, id uint, input UpdateAllInput) error
+	ExportCSV(companyId uint) ([]byte, error)
+	ImportCSV(companyId uint, file multipart.File) error
 }
 
 type employeeUseCase struct {
-	repo repository.EmployeeRepository
+	csvService service.CsvService
+	repo       repository.EmployeeRepository
+	deptRepo   repository.DepartmentRepository
+	prefRepo   repository.PrefectureRepository
 }
 
-func NewEmployeeUseCase(r repository.EmployeeRepository) EmployeeUseCase {
-	return &employeeUseCase{repo: r}
+func NewEmployeeUseCase(
+	r repository.EmployeeRepository,
+	deptRepo repository.DepartmentRepository,
+	prefRepo repository.PrefectureRepository,
+	csv service.CsvService,
+) EmployeeUseCase {
+	return &employeeUseCase{repo: r, deptRepo: deptRepo, prefRepo: prefRepo, csvService: csv}
 }
 
 func (u *employeeUseCase) GetEmployees(companyId uint) (*[]model.Employee, error) {
@@ -166,6 +178,175 @@ func (u *employeeUseCase) UpdateAll(companyId uint, id uint, input UpdateAllInpu
 	}
 
 	return u.repo.UpdateDepartments(companyId, id, input.DepartmentIds)
+}
+
+func (u *employeeUseCase) ExportCSV(companyId uint) ([]byte, error) {
+	employees, err := u.repo.GetList(companyId)
+	if err != nil {
+		return nil, err
+	}
+	addresses, err := u.repo.GetAllAddresses(companyId)
+	if err != nil {
+		return nil, err
+	}
+	tenures, err := u.repo.GetAllTenures(companyId)
+	if err != nil {
+		return nil, err
+	}
+	departments, err := u.repo.GetAllDepartments(companyId)
+	if err != nil {
+		return nil, err
+	}
+
+	exportData := make([]service.EmployeeExportData, len(employees))
+	for i, emp := range employees {
+		exportData[i] = service.EmployeeExportData{
+			Employee:    emp,
+			Address:     addresses[emp.ID],
+			Tenures:     tenures[emp.ID],
+			Departments: departments[emp.ID],
+		}
+	}
+	return u.csvService.GenerateEmployeeCSV(exportData)
+}
+
+func (u *employeeUseCase) ImportCSV(companyId uint, file multipart.File) error {
+	rows, err := u.csvService.ParseEmployeeRows(file)
+	if err != nil {
+		return err
+	}
+
+	// Pre-fetch for name→ID resolution (N+1防止)
+	existingEmps, err := u.repo.GetList(companyId)
+	if err != nil {
+		return err
+	}
+	empByCode := make(map[string]*model.Employee, len(existingEmps))
+	for i := range existingEmps {
+		empByCode[existingEmps[i].StaffCode] = &existingEmps[i]
+	}
+
+	allDepts, err := u.deptRepo.GetList(companyId)
+	if err != nil {
+		return err
+	}
+	deptNameMap := make(map[string]uint, len(allDepts))
+	for _, d := range allDepts {
+		deptNameMap[d.Name] = d.ID
+	}
+
+	allPrefs, err := u.prefRepo.GetAll()
+	if err != nil {
+		return err
+	}
+	prefNameMap := make(map[string]uint, len(allPrefs))
+	for _, p := range allPrefs {
+		prefNameMap[p.Name] = p.ID
+	}
+
+	for _, row := range rows {
+		emp := empByCode[row.StaffCode]
+		if emp == nil {
+			emp = &model.Employee{CompanyId: companyId}
+		}
+		emp.StaffCode = row.StaffCode
+		emp.LastName = row.LastName
+		emp.FirstName = row.FirstName
+		emp.LastNameKana = row.LastNameKana
+		emp.FirstNameKana = row.FirstNameKana
+		emp.Email = row.Email
+
+		if emp.ID == 0 {
+			created, err := u.repo.Create(emp)
+			if err != nil {
+				return err
+			}
+			emp = created
+		} else {
+			if err := u.repo.UpdateEmployee(emp); err != nil {
+				return err
+			}
+		}
+
+		// 住所
+		if row.PostCode != "" || row.PrefectureName != "" || row.City != "" ||
+			row.AddressLine1 != "" || row.AddressLine2 != "" || row.Tel != "" {
+			var prefId *uint
+			if row.PrefectureName != "" {
+				if id, ok := prefNameMap[row.PrefectureName]; ok {
+					prefId = &id
+				}
+			}
+			addr := &model.EmployeeAddress{
+				CompanyId:    companyId,
+				EmployeeId:   emp.ID,
+				PostCode:     nilStr(row.PostCode),
+				PrefectureId: prefId,
+				City:         nilStr(row.City),
+				AddressLine1: nilStr(row.AddressLine1),
+				AddressLine2: nilStr(row.AddressLine2),
+				Tel:          nilStr(row.Tel),
+			}
+			if err := u.repo.UpsertAddress(addr); err != nil {
+				return err
+			}
+		}
+
+		// 在籍情報（CSVに記載がある場合は全置換）
+		if len(row.Tenures) > 0 {
+			tenures := make([]model.EmployeeTenures, 0, len(row.Tenures))
+			for _, t := range row.Tenures {
+				parsed, err := time.Parse("2006-01-02", t.JoinedOn)
+				if err != nil {
+					return err
+				}
+				tenure := model.EmployeeTenures{
+					CompanyId:  companyId,
+					EmployeeId: emp.ID,
+					JoinedOn:   parsed,
+				}
+				if t.ResignationOn != "" {
+					rt, err := time.Parse("2006-01-02", t.ResignationOn)
+					if err != nil {
+						return err
+					}
+					tenure.ResignationOn = &rt
+				}
+				if t.ResignationType != "" {
+					tenure.ResignationType = &t.ResignationType
+				}
+				if t.Status != "" {
+					tenure.Status = &t.Status
+				}
+				tenures = append(tenures, tenure)
+			}
+			if err := u.repo.ReplaceTenures(companyId, emp.ID, tenures); err != nil {
+				return err
+			}
+		}
+
+		// 所属部署（CSVに記載がある場合は全置換）
+		if len(row.DepartmentNames) > 0 {
+			var deptIds []uint
+			for _, name := range row.DepartmentNames {
+				if id, ok := deptNameMap[name]; ok {
+					deptIds = append(deptIds, id)
+				}
+			}
+			if err := u.repo.UpdateDepartments(companyId, emp.ID, deptIds); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func nilStr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // gorm.ErrRecordNotFound を参照するためのブランクインポート抑止

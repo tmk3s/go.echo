@@ -86,6 +86,30 @@ func (h *EmployeeHandler) Create(c echo.Context) error {
 	return c.JSON(http.StatusOK, nil)
 }
 
+func (h *EmployeeHandler) Export(c echo.Context) error {
+	companyId := CurrentCompanyId(c)
+	data, err := h.EmployeeUseCase.ExportCSV(companyId)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	c.Response().Header().Set("Content-Disposition", "attachment; filename=\"employees.csv\"")
+	return c.Blob(http.StatusOK, "text/csv; charset=utf-8", data)
+}
+
+func (h *EmployeeHandler) Import(c echo.Context) error {
+	file, _, err := c.Request().FormFile("file")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	defer file.Close()
+
+	companyId := CurrentCompanyId(c)
+	if err := h.EmployeeUseCase.ImportCSV(companyId, file); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+
 func (h *EmployeeHandler) Update(c echo.Context) error {
 	var params EmployeeUpdateAllParams
 	if err := c.Bind(&params); err != nil {

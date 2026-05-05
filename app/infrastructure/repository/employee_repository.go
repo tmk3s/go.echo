@@ -90,6 +90,10 @@ func (r *employeeRepository) Create(employee *model.Employee) (*model.Employee, 
 	return employee, nil
 }
 
+func (r *employeeRepository) BulkCreate(employees []model.Employee) error {
+	return r.Conn.CreateInBatches(employees, 100).Error
+}
+
 func (r *employeeRepository) UpdateEmployee(employee *model.Employee) error {
 	return r.Conn.Save(employee).Error
 }
@@ -115,6 +119,83 @@ func (r *employeeRepository) UpsertAddress(address *model.EmployeeAddress) error
 
 func (r *employeeRepository) UpdateTenure(tenure *model.EmployeeTenures) error {
 	return r.Conn.Save(tenure).Error
+}
+
+func (r *employeeRepository) GetAllAddresses(companyId uint) (map[uint]*model.EmployeeAddress, error) {
+	var addresses []model.EmployeeAddress
+	if err := r.Conn.Where("company_id = ? AND deleted_at IS NULL", companyId).Find(&addresses).Error; err != nil {
+		return nil, err
+	}
+	var prefects []model.Prefecture
+	if err := r.Conn.Find(&prefects).Error; err != nil {
+		return nil, err
+	}
+	prefMap := make(map[uint]string, len(prefects))
+	for _, p := range prefects {
+		prefMap[p.ID] = p.Name
+	}
+	result := make(map[uint]*model.EmployeeAddress, len(addresses))
+	for i := range addresses {
+		if addresses[i].PrefectureId != nil {
+			name := prefMap[*addresses[i].PrefectureId]
+			addresses[i].PrefectureName = &name
+		}
+		result[addresses[i].EmployeeId] = &addresses[i]
+	}
+	return result, nil
+}
+
+func (r *employeeRepository) GetAllTenures(companyId uint) (map[uint][]model.EmployeeTenures, error) {
+	var tenures []model.EmployeeTenures
+	if err := r.Conn.Where("company_id = ? AND deleted_at IS NULL", companyId).
+		Order("employee_id, joined_on DESC").Find(&tenures).Error; err != nil {
+		return nil, err
+	}
+	result := make(map[uint][]model.EmployeeTenures)
+	for _, t := range tenures {
+		result[t.EmployeeId] = append(result[t.EmployeeId], t)
+	}
+	return result, nil
+}
+
+func (r *employeeRepository) GetAllDepartments(companyId uint) (map[uint][]model.Department, error) {
+	type deptRow struct {
+		ID         uint
+		CompanyId  uint
+		Name       string
+		Depth      int
+		OrderNo    int
+		EmployeeId uint
+	}
+	var rows []deptRow
+	if err := r.Conn.
+		Table("departments").
+		Select("departments.id, departments.company_id, departments.name, departments.depth, departments.order_no, employee_departments.employee_id").
+		Joins("INNER JOIN employee_departments ON departments.id = employee_departments.department_id").
+		Where("employee_departments.company_id = ? AND employee_departments.deleted_at IS NULL AND departments.deleted_at IS NULL", companyId).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make(map[uint][]model.Department)
+	for _, row := range rows {
+		dept := model.Department{Name: row.Name, Depth: row.Depth, OrderNo: row.OrderNo}
+		dept.ID = row.ID
+		result[row.EmployeeId] = append(result[row.EmployeeId], dept)
+	}
+	return result, nil
+}
+
+func (r *employeeRepository) ReplaceTenures(companyId uint, employeeId uint, tenures []model.EmployeeTenures) error {
+	return r.Conn.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("company_id = ? AND employee_id = ?", companyId, employeeId).
+			Delete(&model.EmployeeTenures{}).Error; err != nil {
+			return err
+		}
+		if len(tenures) == 0 {
+			return nil
+		}
+		return tx.Create(&tenures).Error
+	})
 }
 
 func (r *employeeRepository) UpdateDepartments(companyId uint, employeeId uint, departmentIds []uint) error {
