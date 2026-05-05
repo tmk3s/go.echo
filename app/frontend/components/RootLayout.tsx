@@ -3,7 +3,7 @@
     <main>
       <div className="lg:flex lg:justify-center">
         <div className='Menu lg:w-60 lg:min-w-[240px] m-16 h-fit rounded-md shadow-md dark:bg-gray-800 dark:border-gray-700'>
-          <div className='h-16 font-bold pt-5 pl-3'>共通設定</div>
+          <div className='h-16 font-bold pt-5 pl-3'>メニュー</div>
           <ul className=''>
             <li className='h-10 pt-2 pl-3 dark:hover:bg-gray-700'>
               <a className='w-full h-full top-0 bottom-0 block' href="/mypage">マイページ</a>
