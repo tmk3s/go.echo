@@ -9,6 +9,9 @@ services:
       - ./app:/usr/src/app
     tty: true # コンテナの永続化
     stdin_open: true
+    depends_on:
+      db:
+        condition: service_healthy
     # env_file: # .envファイル
     #   - ./build/.go_env
     ports:
@@ -44,6 +47,12 @@ services:
       - '3306:3306'
     volumes:
       - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ppass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 volumes:
   mysql-data:
     driver: local

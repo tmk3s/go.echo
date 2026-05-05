@@ -122,6 +122,24 @@ jwt周りの設定
 
 
 
+### コマンド
+
+#### サーバー起動
+```bash
+docker compose up -d
+```
+
+#### DB初期化 & Seed投入
+DBをdrop/createしてマイグレーション・Seedを一括実行する。
+```bash
+docker compose exec backend go run ./cmd/refresh/main.go
+```
+
+#### Seedのみ投入
+```bash
+docker compose exec backend go run ./cmd/seed/main.go
+```
+
 ### ディレクトリ構造
 - domain
   - model
