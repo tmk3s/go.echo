@@ -27,3 +27,7 @@ func (i *Registry) NewEmployeeHandler() *handler.EmployeeHandler {
 func (i *Registry) NewPrefectureHandler() *handler.PrefectureHandler {
 	return handler.NewPrefectureHandler(i.NewPrefectureUseCase())
 }
+
+func (i *Registry) NewCompanyHandler() *handler.CompanyHandler {
+	return handler.NewCompanyHandler(i.NewCompanyUseCase())
+}

@@ -35,3 +35,7 @@ func (i *Registry) NewEmployeeUseCase() usecase.EmployeeUseCase {
 func (i *Registry) NewPrefectureUseCase() usecase.PrefectureUseCase {
 	return usecase.NewPrefectureUseCase(i.NewPrefectureRepository())
 }
+
+func (i *Registry) NewCompanyUseCase() usecase.CompanyUseCase {
+	return usecase.NewCompanyUseCase(i.NewCompanyRepository())
+}

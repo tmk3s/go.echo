@@ -13,6 +13,7 @@ func (i *Registry) NewAppHandler() *handler.AppHandler {
 		DepartmentHandler: *i.NewDepartmentHandler(),
 		EmployeeHandler:   *i.NewEmployeeHandler(),
 		PrefectureHandler: *i.NewPrefectureHandler(),
+		CompanyHandler:    *i.NewCompanyHandler(),
 	}
 	return appHandler
 }
