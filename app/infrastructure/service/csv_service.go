@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,14 @@ import (
 
 	"github.com/jszwec/csvutil"
 )
+
+var reDept = regexp.MustCompile(`^部署(\d+)$`)
+
+var baseJPHeaders = []string{
+	"スタッフコード", "姓", "名", "姓（カナ）", "名（カナ）", "メールアドレス",
+	"郵便番号", "都道府県", "市区町村", "住所1", "住所2", "電話番号",
+	"入社日", "退職日", "退職区分", "ステータス",
+}
 
 type csvService struct{}
 
@@ -49,31 +58,16 @@ func (s *csvService) ParseDepartmentNames(file multipart.File) ([]string, error)
 }
 
 func (s *csvService) GenerateEmployeeCSV(data []domainservice.EmployeeExportData) ([]byte, error) {
-	maxTenures := 0
 	maxDepts := 0
 	for _, d := range data {
-		if len(d.Tenures) > maxTenures {
-			maxTenures = len(d.Tenures)
-		}
 		if len(d.Departments) > maxDepts {
 			maxDepts = len(d.Departments)
 		}
 	}
 
-	headers := []string{
-		"staff_code", "last_name", "first_name", "last_name_kana", "first_name_kana", "email",
-		"post_code", "prefecture_name", "city", "address_line1", "address_line2", "tel",
-	}
-	for i := 1; i <= maxTenures; i++ {
-		headers = append(headers,
-			fmt.Sprintf("joined_on_%d", i),
-			fmt.Sprintf("resignation_on_%d", i),
-			fmt.Sprintf("resignation_type_%d", i),
-			fmt.Sprintf("status_%d", i),
-		)
-	}
+	headers := append([]string{}, baseJPHeaders...)
 	for i := 1; i <= maxDepts; i++ {
-		headers = append(headers, fmt.Sprintf("department_%d", i))
+		headers = append(headers, fmt.Sprintf("部署%d", i))
 	}
 
 	var buf bytes.Buffer
@@ -104,19 +98,16 @@ func (s *csvService) GenerateEmployeeCSV(data []domainservice.EmployeeExportData
 		}
 		row = append(row, postCode, prefName, city, addr1, addr2, tel)
 
-		for i := 0; i < maxTenures; i++ {
-			if i < len(d.Tenures) {
-				t := d.Tenures[i]
-				row = append(row,
-					t.JoinedOn.Format("2006-01-02"),
-					formatTimePtr(t.ResignationOn),
-					derefStr(t.ResignationType),
-					derefStr(t.Status),
-				)
-			} else {
-				row = append(row, "", "", "", "")
-			}
+		// 在籍情報は先頭の1件のみ出力
+		var joinedOn, resignationOn, resignationType, status string
+		if len(d.Tenures) > 0 {
+			t := d.Tenures[0]
+			joinedOn = t.JoinedOn.Format("2006-01-02")
+			resignationOn = formatTimePtr(t.ResignationOn)
+			resignationType = derefStr(t.ResignationType)
+			status = derefStr(t.Status)
 		}
+		row = append(row, joinedOn, resignationOn, resignationType, status)
 
 		for i := 0; i < maxDepts; i++ {
 			if i < len(d.Departments) {
@@ -137,33 +128,30 @@ func (s *csvService) GenerateEmployeeCSV(data []domainservice.EmployeeExportData
 func (s *csvService) ParseEmployeeRows(file multipart.File) ([]domainservice.EmployeeCSVRow, error) {
 	r := csv.NewReader(skipBOM(file))
 
-	headers, err := r.Read()
+	rawHeaders, err := r.Read()
 	if err != nil {
 		return nil, err
 	}
 
-	colIndex := make(map[string]int, len(headers))
-	for i, h := range headers {
-		colIndex[strings.TrimSpace(h)] = i
-	}
+	baseIdx := make(map[string]int)
+	deptIdx := make(map[int]int)
+	maxDeptN := 0
 
-	maxTenures := 0
-	maxDepts := 0
-	for h := range colIndex {
-		if strings.HasPrefix(h, "joined_on_") {
-			if n, err := strconv.Atoi(strings.TrimPrefix(h, "joined_on_")); err == nil && n > maxTenures {
-				maxTenures = n
+	for i, h := range rawHeaders {
+		h = strings.TrimSpace(h)
+		if m := reDept.FindStringSubmatch(h); m != nil {
+			n, _ := strconv.Atoi(m[1])
+			deptIdx[n] = i
+			if n > maxDeptN {
+				maxDeptN = n
 			}
-		}
-		if strings.HasPrefix(h, "department_") {
-			if n, err := strconv.Atoi(strings.TrimPrefix(h, "department_")); err == nil && n > maxDepts {
-				maxDepts = n
-			}
+		} else {
+			baseIdx[h] = i
 		}
 	}
 
 	get := func(record []string, key string) string {
-		if i, ok := colIndex[key]; ok && i < len(record) {
+		if i, ok := baseIdx[key]; ok && i < len(record) {
 			return strings.TrimSpace(record[i])
 		}
 		return ""
@@ -179,43 +167,42 @@ func (s *csvService) ParseEmployeeRows(file multipart.File) ([]domainservice.Emp
 			return nil, err
 		}
 
-		staffCode := get(record, "staff_code")
-		email := get(record, "email")
+		staffCode := get(record, "スタッフコード")
+		email := get(record, "メールアドレス")
 		if staffCode == "" && email == "" {
 			continue
 		}
 
 		row := domainservice.EmployeeCSVRow{
 			StaffCode:      staffCode,
-			LastName:       get(record, "last_name"),
-			FirstName:      get(record, "first_name"),
-			LastNameKana:   get(record, "last_name_kana"),
-			FirstNameKana:  get(record, "first_name_kana"),
+			LastName:       get(record, "姓"),
+			FirstName:      get(record, "名"),
+			LastNameKana:   get(record, "姓（カナ）"),
+			FirstNameKana:  get(record, "名（カナ）"),
 			Email:          email,
-			PostCode:       get(record, "post_code"),
-			PrefectureName: get(record, "prefecture_name"),
-			City:           get(record, "city"),
-			AddressLine1:   get(record, "address_line1"),
-			AddressLine2:   get(record, "address_line2"),
-			Tel:            get(record, "tel"),
+			PostCode:       get(record, "郵便番号"),
+			PrefectureName: get(record, "都道府県"),
+			City:           get(record, "市区町村"),
+			AddressLine1:   get(record, "住所1"),
+			AddressLine2:   get(record, "住所2"),
+			Tel:            get(record, "電話番号"),
 		}
 
-		for i := 1; i <= maxTenures; i++ {
-			joinedOn := get(record, fmt.Sprintf("joined_on_%d", i))
-			if joinedOn == "" {
-				continue
-			}
+		// 在籍情報は1件のみ
+		if joinedOn := get(record, "入社日"); joinedOn != "" {
 			row.Tenures = append(row.Tenures, domainservice.TenureCSVRow{
 				JoinedOn:        joinedOn,
-				ResignationOn:   get(record, fmt.Sprintf("resignation_on_%d", i)),
-				ResignationType: get(record, fmt.Sprintf("resignation_type_%d", i)),
-				Status:          get(record, fmt.Sprintf("status_%d", i)),
+				ResignationOn:   get(record, "退職日"),
+				ResignationType: get(record, "退職区分"),
+				Status:          get(record, "ステータス"),
 			})
 		}
 
-		for i := 1; i <= maxDepts; i++ {
-			if name := get(record, fmt.Sprintf("department_%d", i)); name != "" {
-				row.DepartmentNames = append(row.DepartmentNames, name)
+		for n := 1; n <= maxDeptN; n++ {
+			if i, ok := deptIdx[n]; ok && i < len(record) {
+				if name := strings.TrimSpace(record[i]); name != "" {
+					row.DepartmentNames = append(row.DepartmentNames, name)
+				}
 			}
 		}
 

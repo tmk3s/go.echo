@@ -1,7 +1,9 @@
 package usecase
 
 import (
+	"fmt"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	"app/domain/model"
@@ -48,7 +50,8 @@ type EmployeeUseCase interface {
 	Create(companyId uint, lastName string, firstName string, lastNameKana string, firstNameKana string, email string, staffCode string) error
 	UpdateAll(companyId uint, id uint, input UpdateAllInput) error
 	ExportCSV(companyId uint) ([]byte, error)
-	ImportCSV(companyId uint, file multipart.File) error
+	BulkCreateFromCSV(companyId uint, file multipart.File) error
+	BulkUpdateFromCSV(companyId uint, file multipart.File) error
 }
 
 type employeeUseCase struct {
@@ -210,135 +213,184 @@ func (u *employeeUseCase) ExportCSV(companyId uint) ([]byte, error) {
 	return u.csvService.GenerateEmployeeCSV(exportData)
 }
 
-func (u *employeeUseCase) ImportCSV(companyId uint, file multipart.File) error {
+func (u *employeeUseCase) BulkCreateFromCSV(companyId uint, file multipart.File) error {
 	rows, err := u.csvService.ParseEmployeeRows(file)
 	if err != nil {
 		return err
 	}
-
-	// Pre-fetch for name→ID resolution (N+1防止)
-	existingEmps, err := u.repo.GetList(companyId)
+	lookup, err := u.buildImportLookup(companyId)
 	if err != nil {
 		return err
-	}
-	empByCode := make(map[string]*model.Employee, len(existingEmps))
-	for i := range existingEmps {
-		empByCode[existingEmps[i].StaffCode] = &existingEmps[i]
-	}
-
-	allDepts, err := u.deptRepo.GetList(companyId)
-	if err != nil {
-		return err
-	}
-	deptNameMap := make(map[string]uint, len(allDepts))
-	for _, d := range allDepts {
-		deptNameMap[d.Name] = d.ID
-	}
-
-	allPrefs, err := u.prefRepo.GetAll()
-	if err != nil {
-		return err
-	}
-	prefNameMap := make(map[string]uint, len(allPrefs))
-	for _, p := range allPrefs {
-		prefNameMap[p.Name] = p.ID
 	}
 
 	for _, row := range rows {
-		emp := empByCode[row.StaffCode]
-		if emp == nil {
-			emp = &model.Employee{CompanyId: companyId}
+		if _, exists := lookup.empByCode[row.StaffCode]; exists {
+			continue // 既存はスキップ
 		}
-		emp.StaffCode = row.StaffCode
+		emp := &model.Employee{
+			CompanyId:     companyId,
+			StaffCode:     row.StaffCode,
+			LastName:      row.LastName,
+			FirstName:     row.FirstName,
+			LastNameKana:  row.LastNameKana,
+			FirstNameKana: row.FirstNameKana,
+			Email:         row.Email,
+		}
+		created, err := u.repo.Create(emp)
+		if err != nil {
+			return err
+		}
+		if err := u.applyRelated(companyId, created.ID, row, lookup); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (u *employeeUseCase) BulkUpdateFromCSV(companyId uint, file multipart.File) error {
+	rows, err := u.csvService.ParseEmployeeRows(file)
+	if err != nil {
+		return err
+	}
+	lookup, err := u.buildImportLookup(companyId)
+	if err != nil {
+		return err
+	}
+
+	// staff_code が未存在の行を先にすべてチェック
+	var missing []string
+	for _, row := range rows {
+		if _, exists := lookup.empByCode[row.StaffCode]; !exists {
+			missing = append(missing, row.StaffCode)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("以下のスタッフコードに紐づく社員が見つかりません: %s", strings.Join(missing, ", "))
+	}
+
+	for _, row := range rows {
+		emp, exists := lookup.empByCode[row.StaffCode]
+		if !exists {
+			continue
+		}
 		emp.LastName = row.LastName
 		emp.FirstName = row.FirstName
 		emp.LastNameKana = row.LastNameKana
 		emp.FirstNameKana = row.FirstNameKana
 		emp.Email = row.Email
+		if err := u.repo.UpdateEmployee(emp); err != nil {
+			return err
+		}
+		if err := u.applyRelated(companyId, emp.ID, row, lookup); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-		if emp.ID == 0 {
-			created, err := u.repo.Create(emp)
-			if err != nil {
-				return err
-			}
-			emp = created
-		} else {
-			if err := u.repo.UpdateEmployee(emp); err != nil {
-				return err
+type importLookup struct {
+	empByCode  map[string]*model.Employee
+	deptByName map[string]uint
+	prefByName map[string]uint
+}
+
+func (u *employeeUseCase) buildImportLookup(companyId uint) (*importLookup, error) {
+	emps, err := u.repo.GetList(companyId)
+	if err != nil {
+		return nil, err
+	}
+	empByCode := make(map[string]*model.Employee, len(emps))
+	for i := range emps {
+		empByCode[emps[i].StaffCode] = &emps[i]
+	}
+
+	depts, err := u.deptRepo.GetList(companyId)
+	if err != nil {
+		return nil, err
+	}
+	deptByName := make(map[string]uint, len(depts))
+	for _, d := range depts {
+		deptByName[d.Name] = d.ID
+	}
+
+	prefs, err := u.prefRepo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	prefByName := make(map[string]uint, len(prefs))
+	for _, p := range prefs {
+		prefByName[p.Name] = p.ID
+	}
+
+	return &importLookup{empByCode: empByCode, deptByName: deptByName, prefByName: prefByName}, nil
+}
+
+func (u *employeeUseCase) applyRelated(companyId uint, empID uint, row service.EmployeeCSVRow, l *importLookup) error {
+	// 住所
+	if row.PostCode != "" || row.PrefectureName != "" || row.City != "" ||
+		row.AddressLine1 != "" || row.AddressLine2 != "" || row.Tel != "" {
+		var prefId *uint
+		if row.PrefectureName != "" {
+			if id, ok := l.prefByName[row.PrefectureName]; ok {
+				prefId = &id
 			}
 		}
-
-		// 住所
-		if row.PostCode != "" || row.PrefectureName != "" || row.City != "" ||
-			row.AddressLine1 != "" || row.AddressLine2 != "" || row.Tel != "" {
-			var prefId *uint
-			if row.PrefectureName != "" {
-				if id, ok := prefNameMap[row.PrefectureName]; ok {
-					prefId = &id
-				}
-			}
-			addr := &model.EmployeeAddress{
-				CompanyId:    companyId,
-				EmployeeId:   emp.ID,
-				PostCode:     nilStr(row.PostCode),
-				PrefectureId: prefId,
-				City:         nilStr(row.City),
-				AddressLine1: nilStr(row.AddressLine1),
-				AddressLine2: nilStr(row.AddressLine2),
-				Tel:          nilStr(row.Tel),
-			}
-			if err := u.repo.UpsertAddress(addr); err != nil {
-				return err
-			}
+		addr := &model.EmployeeAddress{
+			CompanyId:    companyId,
+			EmployeeId:   empID,
+			PostCode:     nilStr(row.PostCode),
+			PrefectureId: prefId,
+			City:         nilStr(row.City),
+			AddressLine1: nilStr(row.AddressLine1),
+			AddressLine2: nilStr(row.AddressLine2),
+			Tel:          nilStr(row.Tel),
 		}
-
-		// 在籍情報（CSVに記載がある場合は全置換）
-		if len(row.Tenures) > 0 {
-			tenures := make([]model.EmployeeTenures, 0, len(row.Tenures))
-			for _, t := range row.Tenures {
-				parsed, err := time.Parse("2006-01-02", t.JoinedOn)
-				if err != nil {
-					return err
-				}
-				tenure := model.EmployeeTenures{
-					CompanyId:  companyId,
-					EmployeeId: emp.ID,
-					JoinedOn:   parsed,
-				}
-				if t.ResignationOn != "" {
-					rt, err := time.Parse("2006-01-02", t.ResignationOn)
-					if err != nil {
-						return err
-					}
-					tenure.ResignationOn = &rt
-				}
-				if t.ResignationType != "" {
-					tenure.ResignationType = &t.ResignationType
-				}
-				if t.Status != "" {
-					tenure.Status = &t.Status
-				}
-				tenures = append(tenures, tenure)
-			}
-			if err := u.repo.ReplaceTenures(companyId, emp.ID, tenures); err != nil {
-				return err
-			}
-		}
-
-		// 所属部署（CSVに記載がある場合は全置換）
-		if len(row.DepartmentNames) > 0 {
-			var deptIds []uint
-			for _, name := range row.DepartmentNames {
-				if id, ok := deptNameMap[name]; ok {
-					deptIds = append(deptIds, id)
-				}
-			}
-			if err := u.repo.UpdateDepartments(companyId, emp.ID, deptIds); err != nil {
-				return err
-			}
+		if err := u.repo.UpsertAddress(addr); err != nil {
+			return err
 		}
 	}
 
+	// 在籍情報（記載がある場合は全置換）
+	if len(row.Tenures) > 0 {
+		tenures := make([]model.EmployeeTenures, 0, len(row.Tenures))
+		for _, t := range row.Tenures {
+			parsed, err := time.Parse("2006-01-02", t.JoinedOn)
+			if err != nil {
+				return err
+			}
+			tenure := model.EmployeeTenures{CompanyId: companyId, EmployeeId: empID, JoinedOn: parsed}
+			if t.ResignationOn != "" {
+				rt, err := time.Parse("2006-01-02", t.ResignationOn)
+				if err != nil {
+					return err
+				}
+				tenure.ResignationOn = &rt
+			}
+			if t.ResignationType != "" {
+				tenure.ResignationType = &t.ResignationType
+			}
+			if t.Status != "" {
+				tenure.Status = &t.Status
+			}
+			tenures = append(tenures, tenure)
+		}
+		if err := u.repo.ReplaceTenures(companyId, empID, tenures); err != nil {
+			return err
+		}
+	}
+
+	// 所属部署（記載がある場合は全置換）
+	if len(row.DepartmentNames) > 0 {
+		var deptIds []uint
+		for _, name := range row.DepartmentNames {
+			if id, ok := l.deptByName[name]; ok {
+				deptIds = append(deptIds, id)
+			}
+		}
+		if err := u.repo.UpdateDepartments(companyId, empID, deptIds); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

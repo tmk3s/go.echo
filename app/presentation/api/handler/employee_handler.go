@@ -96,7 +96,7 @@ func (h *EmployeeHandler) Export(c echo.Context) error {
 	return c.Blob(http.StatusOK, "text/csv; charset=utf-8", data)
 }
 
-func (h *EmployeeHandler) Import(c echo.Context) error {
+func (h *EmployeeHandler) BulkCreate(c echo.Context) error {
 	file, _, err := c.Request().FormFile("file")
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -104,7 +104,21 @@ func (h *EmployeeHandler) Import(c echo.Context) error {
 	defer file.Close()
 
 	companyId := CurrentCompanyId(c)
-	if err := h.EmployeeUseCase.ImportCSV(companyId, file); err != nil {
+	if err := h.EmployeeUseCase.BulkCreateFromCSV(companyId, file); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, nil)
+}
+
+func (h *EmployeeHandler) BulkUpdate(c echo.Context) error {
+	file, _, err := c.Request().FormFile("file")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	defer file.Close()
+
+	companyId := CurrentCompanyId(c)
+	if err := h.EmployeeUseCase.BulkUpdateFromCSV(companyId, file); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return c.JSON(http.StatusOK, nil)
