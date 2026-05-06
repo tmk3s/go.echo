@@ -223,10 +223,18 @@ func (u *employeeUseCase) BulkCreateFromCSV(companyId uint, file multipart.File)
 		return err
 	}
 
+	// 既存スタッフコードが1件でもあればエラー
+	var duplicates []string
 	for _, row := range rows {
 		if _, exists := lookup.empByCode[row.StaffCode]; exists {
-			continue // 既存はスキップ
+			duplicates = append(duplicates, row.StaffCode)
 		}
+	}
+	if len(duplicates) > 0 {
+		return fmt.Errorf("以下のスタッフコードはすでに登録されています: %s", strings.Join(duplicates, ", "))
+	}
+
+	for _, row := range rows {
 		emp := &model.Employee{
 			CompanyId:     companyId,
 			StaffCode:     row.StaffCode,
