@@ -4,6 +4,7 @@ import (
 	"app/domain/model"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -167,12 +168,30 @@ func seedUsers(db *gorm.DB) error {
 		return err
 	}
 
-	users := []model.User{
-		{CompanyId: company.ID, Email: "admin@example.com", Password: "hashed_password_1"},
-		{CompanyId: company.ID, Email: "user1@example.com", Password: "hashed_password_2"},
-		{CompanyId: company.ID, Email: "user2@example.com", Password: "hashed_password_3"},
+	type userData struct {
+		email    string
+		password string
 	}
-	return db.CreateInBatches(users, len(users)).Error
+	entries := []userData{
+		{"admin@example.com", "password1"},
+		{"user1@example.com", "password2"},
+		{"user2@example.com", "password3"},
+	}
+
+	for _, e := range entries {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(e.password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		if err := db.Create(&model.User{
+			CompanyId: company.ID,
+			Email:     e.email,
+			Password:  string(hashed),
+		}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func seedUserInfos(db *gorm.DB) error {

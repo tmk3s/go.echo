@@ -3,6 +3,8 @@ package repository
 import (
 	"errors"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"app/domain/model"
 	"app/domain/repository"
 	"gorm.io/gorm"
@@ -13,11 +15,10 @@ type userRepository struct {
 }
 
 func NewUserRepository(conn *gorm.DB) repository.UserRepository {
-	return &userRepository{conn} // ポインタを返す
+	return &userRepository{conn}
 }
 
 func (r *userRepository) GetById(id uint) (*model.User, error) {
-	// (type) is not an expression => 初期化しないと出る {} or new
 	user := &model.User{}
 	err := r.Conn.Preload("UserInfo").First(user, id).Error
 	if err != nil {
@@ -26,23 +27,37 @@ func (r *userRepository) GetById(id uint) (*model.User, error) {
 	return user, nil
 }
 
-func (r *userRepository) GetByEmailAndPass(email string, password string) (*model.User, error) {
+func (r *userRepository) GetByEmail(email string) (*model.User, error) {
 	var user model.User
-	query := r.Conn.Where("")
-	query = query.Where(model.User{Email: email, Password: password})
-
-	if err := query.First(&user).Error; err != nil {
+	if err := r.Conn.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		// https://stackoverflow.com/questions/57465968/cannot-use-nil-value-as-a-return-of-type-struct
-		// return model.User{}, echo.ErrNotFound
 		return nil, err
 	}
 	return &user, nil
 }
 
+func (r *userRepository) GetByEmailAndPass(email string, password string) (*model.User, error) {
+	var user model.User
+	if err := r.Conn.Where("email = ?", email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, nil
+	}
+	return &user, nil
+}
+
 func (r *userRepository) Create(user *model.User) (*model.User, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	user.Password = string(hashed)
 	if err := r.Conn.Create(user).Error; err != nil {
 		return nil, err
 	}

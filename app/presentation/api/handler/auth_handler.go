@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -20,8 +20,6 @@ func NewAuthHandler(u usecase.AuthUseCase) *AuthHandler {
 	return &AuthHandler{u}
 }
 
-// jwtCustomClaims are custom claims extending default ones.
-// See https://github.com/golang-jwt/jwt for more examples
 type jwtCustomClaims struct {
 	Id        uint   `json:"id"`
 	Email     string `json:"email"`
@@ -29,80 +27,68 @@ type jwtCustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-var signingKey = []byte("secret")
+var signingKey []byte
+var Config echojwt.Config
 
-var Config = echojwt.Config{
-	NewClaimsFunc: func(c echo.Context) jwt.Claims { return new(jwtCustomClaims) },
-	SigningKey:    signingKey,
+func init() {
+	key := os.Getenv("JWT_SECRET")
+	if key == "" {
+		panic("JWT_SECRET environment variable must be set")
+	}
+	signingKey = []byte(key)
+	Config = echojwt.Config{
+		NewClaimsFunc: func(c echo.Context) jwt.Claims { return new(jwtCustomClaims) },
+		SigningKey:     signingKey,
+		TokenLookup:   "cookie:session",
+	}
 }
 
 type SignUpRequest struct {
-	Email    string `json:email`
-	Password string `json:password`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (h *AuthHandler) SignUp(c echo.Context) error {
 	var params SignUpRequest
 	if err := c.Bind(&params); err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
-
-	fmt.Printf("%s", "Bind Done")
-
 	if params.Email == "" || params.Password == "" {
-		return &echo.HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "invalid Email or password",
-		}
+		return echo.NewHTTPError(http.StatusBadRequest, "email and password are required")
 	}
 
-	user, err := h.AuthUseCase.GetUser(params.Email, params.Password)
+	existing, err := h.AuthUseCase.GetUserByEmail(params.Email)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
+	}
+	if existing != nil {
+		return echo.NewHTTPError(http.StatusConflict, "email already exists")
 	}
 
-	if user == nil {
-		return &echo.HTTPError{
-			Code:    http.StatusConflict,
-			Message: "email already exists",
-		}
-	}
-
-	user, err = h.AuthUseCase.CreateUser(params.Email, params.Password)
+	user, err := h.AuthUseCase.CreateUser(params.Email, params.Password)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
-
-	user.Password = "" // フロントに返さないようにクリア
 	return c.JSON(http.StatusCreated, user)
 }
 
 type SignInRequest struct {
-	Email    string `json:email`
-	Password string `json:password`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (h *AuthHandler) SignIn(c echo.Context) error {
-	fmt.Printf("%s", "SignIn Start")
 	var params SignInRequest
 	if err := c.Bind(&params); err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
 	}
-	fmt.Printf("%s", "Bind Done")
-	fmt.Printf("%s", params.Email)
-	fmt.Printf("%s", params.Password)
 
 	user, err := h.AuthUseCase.GetUser(params.Email, params.Password)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
-	fmt.Printf("%s", err)
-
 	if user == nil {
-		return &echo.HTTPError{
-			Code:    http.StatusUnauthorized,
-			Message: "invalid Email or password",
-		}
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid email or password")
 	}
 
 	claims := &jwtCustomClaims{
@@ -110,26 +96,24 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
 		user.Email,
 		user.CompanyId,
 		jwt.RegisteredClaims{
-			// https://github.com/golang-jwt/jwt/blob/main/example_test.go
-			ExpiresAt: jwt.NewNumericDate(time.Unix(time.Now().Add(time.Hour*72).Unix(), 0)),
-			// ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72).Unix()), NG
-			// ExpiresAt: time.Now().Add(time.Hour * 72).Unix(), NG
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		},
 	}
-	fmt.Printf("%s", "データ取得OK")
-	fmt.Printf("%s", user)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	t, err := token.SignedString(signingKey)
 	if err != nil {
-		return err
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
 
 	cookie := new(http.Cookie)
 	cookie.Name = "session"
 	cookie.Value = t
-	cookie.Expires = time.Now().Add(24 * time.Hour)
+	cookie.Expires = time.Now().Add(time.Hour)
+	cookie.HttpOnly = true
+	cookie.SameSite = http.SameSiteStrictMode
+	cookie.Secure = os.Getenv("APP_ENV") == "production"
 	c.SetCookie(cookie)
 
-	return c.String(http.StatusOK, "write a cookie")
+	return c.String(http.StatusOK, "ok")
 }

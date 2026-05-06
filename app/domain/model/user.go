@@ -8,7 +8,7 @@ type User struct {
 	gorm.Model
 	CompanyId uint     `json:"company_id" gorm:"index"`
 	Email     string   `json:"email" gorm:"index`
-	Password  string   `json:"password"`
+	Password  string   `json:"-"`
 	UserInfo  UserInfo `gorm:"foreignKey:UserId"`
 }
 

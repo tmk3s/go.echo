@@ -23,6 +23,8 @@ services:
       MYSQL_HOST: 'db'
       MYSQL_PORT: '3306'
       MYSQL_DATABASE: 'develop'
+      JWT_SECRET: 'change-me-in-production'
+      APP_ENV: 'development'
   front: # サービス名
     build: # ビルドに使うDockerファイルのパス
       context: .

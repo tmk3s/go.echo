@@ -86,22 +86,27 @@ func (h *EmployeeHandler) Create(c echo.Context) error {
 	return c.JSON(http.StatusOK, nil)
 }
 
+const maxCSVSize = 5 * 1024 * 1024 // 5MB
+
 func (h *EmployeeHandler) Export(c echo.Context) error {
 	companyId := CurrentCompanyId(c)
 	data, err := h.EmployeeUseCase.ExportCSV(companyId)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, "export failed")
 	}
 	c.Response().Header().Set("Content-Disposition", "attachment; filename=\"employees.csv\"")
 	return c.Blob(http.StatusOK, "text/csv; charset=utf-8", data)
 }
 
 func (h *EmployeeHandler) BulkCreate(c echo.Context) error {
-	file, _, err := c.Request().FormFile("file")
+	file, header, err := c.Request().FormFile("file")
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to read file")
 	}
 	defer file.Close()
+	if header.Size > maxCSVSize {
+		return echo.NewHTTPError(http.StatusBadRequest, "file too large (max 5MB)")
+	}
 
 	companyId := CurrentCompanyId(c)
 	if err := h.EmployeeUseCase.BulkCreateFromCSV(companyId, file); err != nil {
@@ -111,11 +116,14 @@ func (h *EmployeeHandler) BulkCreate(c echo.Context) error {
 }
 
 func (h *EmployeeHandler) BulkUpdate(c echo.Context) error {
-	file, _, err := c.Request().FormFile("file")
+	file, header, err := c.Request().FormFile("file")
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, "failed to read file")
 	}
 	defer file.Close()
+	if header.Size > maxCSVSize {
+		return echo.NewHTTPError(http.StatusBadRequest, "file too large (max 5MB)")
+	}
 
 	companyId := CurrentCompanyId(c)
 	if err := h.EmployeeUseCase.BulkUpdateFromCSV(companyId, file); err != nil {
