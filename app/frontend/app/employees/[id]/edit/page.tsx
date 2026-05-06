@@ -77,7 +77,7 @@ const EmployeeEditPage = () => {
       api.get('/api/departments'),
       api.get('/api/prefectures'),
     ]).then(([detailRes, deptRes, prefRes]) => {
-      const { Employee: emp, Address, Tenures, Departments } = detailRes.data;
+      const emp = detailRes.data;
 
       reset({
         staff_code: emp.staff_code,
@@ -86,16 +86,16 @@ const EmployeeEditPage = () => {
         last_name_kana: emp.last_name_kana,
         first_name_kana: emp.first_name_kana,
         email: emp.email,
-        post_code: Address?.post_code ?? '',
-        prefecture_id: Address?.prefecture_id?.toString() ?? '',
-        city: Address?.city ?? '',
-        address_line1: Address?.address_line1 ?? '',
-        address_line2: Address?.address_line2 ?? '',
-        tel: Address?.tel ?? '',
+        post_code: emp.address?.post_code ?? '',
+        prefecture_id: emp.address?.prefecture_id?.toString() ?? '',
+        city: emp.address?.city ?? '',
+        address_line1: emp.address?.address_line1 ?? '',
+        address_line2: emp.address?.address_line2 ?? '',
+        tel: emp.address?.tel ?? '',
       });
 
       setTenures(
-        (Tenures ?? []).map((t: any) => ({
+        (emp.tenures ?? []).map((t: any) => ({
           ID: t.ID,
           joined_on: t.joined_on?.substring(0, 10) ?? '',
           resignation_on: t.resignation_on?.substring(0, 10) ?? '',
@@ -105,7 +105,7 @@ const EmployeeEditPage = () => {
       );
 
       setDepartmentOptions(buildDepartmentOptions(deptRes.data ?? []));
-      const assignedIds = (Departments ?? []).map((d: Department) => d.ID as number | null);
+      const assignedIds = (emp.departments ?? []).map((d: Department) => d.ID as number | null);
       setSelectedDeptIds(assignedIds.length > 0 ? assignedIds : [null]);
       setPrefectures(prefRes.data ?? []);
     });

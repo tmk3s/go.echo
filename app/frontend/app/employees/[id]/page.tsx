@@ -5,16 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import RootLayout from '@/components/RootLayout';
 import useApi from '@/app/api';
 
-type Employee = {
-  ID: number;
-  last_name: string;
-  first_name: string;
-  last_name_kana: string;
-  first_name_kana: string;
-  email: string;
-  staff_code: string;
-};
-
 type EmployeeAddress = {
   post_code: string | null;
   prefecture_name: string | null;
@@ -38,11 +28,17 @@ type Department = {
   depth: number;
 };
 
-type EmployeeDetail = {
-  Employee: Employee;
-  Address: EmployeeAddress | null;
-  Tenures: EmployeeTenure[];
-  Departments: Department[];
+type Employee = {
+  ID: number;
+  last_name: string;
+  first_name: string;
+  last_name_kana: string;
+  first_name_kana: string;
+  email: string;
+  staff_code: string;
+  address: EmployeeAddress | null;
+  tenures: EmployeeTenure[];
+  departments: Department[];
 };
 
 // order_no順の全部署リストから id → "親 / 子" ラベルのマップを生成
@@ -86,7 +82,7 @@ const EmployeeDetailPage = () => {
   const { id } = useParams();
   const router = useRouter();
   const api = useApi();
-  const [detail, setDetail] = useState<EmployeeDetail | null>(null);
+  const [detail, setDetail] = useState<Employee | null>(null);
   const [allDepts, setAllDepts] = useState<Department[]>([]);
 
   useEffect(() => {
@@ -109,7 +105,7 @@ const EmployeeDetailPage = () => {
     );
   }
 
-  const { Employee: emp, Address, Tenures, Departments } = detail;
+  const { address: Address, tenures: Tenures = [], departments: Departments = [], ...emp } = detail;
 
   return (
     <RootLayout>

@@ -12,13 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type EmployeeDetail struct {
-	Employee    *model.Employee
-	Address     *model.EmployeeAddress
-	Tenures     []model.EmployeeTenures
-	Departments []model.Department
-}
-
 type TenureUpdateInput struct {
 	ID              uint
 	JoinedOn        string
@@ -46,7 +39,7 @@ type UpdateAllInput struct {
 
 type EmployeeUseCase interface {
 	GetEmployees(companyId uint) (*[]model.Employee, error)
-	GetEmployeeDetail(companyId uint, id uint) (*EmployeeDetail, error)
+	GetEmployeeDetail(companyId uint, id uint) (*model.Employee, error)
 	Create(companyId uint, lastName string, firstName string, lastNameKana string, firstNameKana string, email string, staffCode string) error
 	UpdateAll(companyId uint, id uint, input UpdateAllInput) error
 	ExportCSV(companyId uint) ([]byte, error)
@@ -78,29 +71,8 @@ func (u *employeeUseCase) GetEmployees(companyId uint) (*[]model.Employee, error
 	return &employees, nil
 }
 
-func (u *employeeUseCase) GetEmployeeDetail(companyId uint, id uint) (*EmployeeDetail, error) {
-	employee, err := u.repo.GetById(companyId, id)
-	if err != nil {
-		return nil, err
-	}
-	address, err := u.repo.GetAddress(companyId, id)
-	if err != nil {
-		return nil, err
-	}
-	tenures, err := u.repo.GetTenures(companyId, id)
-	if err != nil {
-		return nil, err
-	}
-	departments, err := u.repo.GetDepartments(companyId, id)
-	if err != nil {
-		return nil, err
-	}
-	return &EmployeeDetail{
-		Employee:    employee,
-		Address:     address,
-		Tenures:     tenures,
-		Departments: departments,
-	}, nil
+func (u *employeeUseCase) GetEmployeeDetail(companyId uint, id uint) (*model.Employee, error) {
+	return u.repo.GetDetail(companyId, id)
 }
 
 func (u *employeeUseCase) Create(companyId uint, lastName string, firstName string, lastNameKana string, firstNameKana string, email string, staffCode string) error {
@@ -118,7 +90,7 @@ func (u *employeeUseCase) Create(companyId uint, lastName string, firstName stri
 }
 
 func (u *employeeUseCase) UpdateAll(companyId uint, id uint, input UpdateAllInput) error {
-	employee, err := u.repo.GetById(companyId, id)
+	employee, err := u.repo.GetDetail(companyId, id)
 	if err != nil {
 		return err
 	}
@@ -146,17 +118,9 @@ func (u *employeeUseCase) UpdateAll(companyId uint, id uint, input UpdateAllInpu
 		return err
 	}
 
-	existingTenures, err := u.repo.GetTenures(companyId, id)
-	if err != nil {
-		return err
-	}
-	tenureMap := make(map[uint]*model.EmployeeTenures, len(existingTenures))
-	for i := range existingTenures {
-		tenureMap[existingTenures[i].ID] = &existingTenures[i]
-	}
 	for _, t := range input.Tenures {
-		target, ok := tenureMap[t.ID]
-		if !ok {
+		target := findTenure(employee.Tenures, t.ID)
+		if target == nil {
 			continue
 		}
 		parsed, err := time.Parse("2006-01-02", t.JoinedOn)
@@ -183,34 +147,21 @@ func (u *employeeUseCase) UpdateAll(companyId uint, id uint, input UpdateAllInpu
 	return u.repo.UpdateDepartments(companyId, id, input.DepartmentIds)
 }
 
-func (u *employeeUseCase) ExportCSV(companyId uint) ([]byte, error) {
-	employees, err := u.repo.GetList(companyId)
-	if err != nil {
-		return nil, err
-	}
-	addresses, err := u.repo.GetAllAddresses(companyId)
-	if err != nil {
-		return nil, err
-	}
-	tenures, err := u.repo.GetAllTenures(companyId)
-	if err != nil {
-		return nil, err
-	}
-	departments, err := u.repo.GetAllDepartments(companyId)
-	if err != nil {
-		return nil, err
-	}
-
-	exportData := make([]service.EmployeeExportData, len(employees))
-	for i, emp := range employees {
-		exportData[i] = service.EmployeeExportData{
-			Employee:    emp,
-			Address:     addresses[emp.ID],
-			Tenures:     tenures[emp.ID],
-			Departments: departments[emp.ID],
+func findTenure(tenures []model.EmployeeTenures, id uint) *model.EmployeeTenures {
+	for i := range tenures {
+		if tenures[i].ID == id {
+			return &tenures[i]
 		}
 	}
-	return u.csvService.GenerateEmployeeCSV(exportData)
+	return nil
+}
+
+func (u *employeeUseCase) ExportCSV(companyId uint) ([]byte, error) {
+	employees, err := u.repo.GetListForExport(companyId)
+	if err != nil {
+		return nil, err
+	}
+	return u.csvService.GenerateEmployeeCSV(employees)
 }
 
 func (u *employeeUseCase) BulkCreateFromCSV(companyId uint, file multipart.File) error {
@@ -223,7 +174,6 @@ func (u *employeeUseCase) BulkCreateFromCSV(companyId uint, file multipart.File)
 		return err
 	}
 
-	// 既存スタッフコードが1件でもあればエラー
 	var duplicates []string
 	for _, row := range rows {
 		if _, exists := lookup.empByCode[row.StaffCode]; exists {
@@ -265,7 +215,6 @@ func (u *employeeUseCase) BulkUpdateFromCSV(companyId uint, file multipart.File)
 		return err
 	}
 
-	// staff_code が未存在の行を先にすべてチェック
 	var missing []string
 	for _, row := range rows {
 		if _, exists := lookup.empByCode[row.StaffCode]; !exists {
@@ -277,10 +226,7 @@ func (u *employeeUseCase) BulkUpdateFromCSV(companyId uint, file multipart.File)
 	}
 
 	for _, row := range rows {
-		emp, exists := lookup.empByCode[row.StaffCode]
-		if !exists {
-			continue
-		}
+		emp := lookup.empByCode[row.StaffCode]
 		emp.LastName = row.LastName
 		emp.FirstName = row.FirstName
 		emp.LastNameKana = row.LastNameKana
@@ -334,7 +280,6 @@ func (u *employeeUseCase) buildImportLookup(companyId uint) (*importLookup, erro
 }
 
 func (u *employeeUseCase) applyRelated(companyId uint, empID uint, row service.EmployeeCSVRow, l *importLookup) error {
-	// 住所
 	if row.PostCode != "" || row.PrefectureName != "" || row.City != "" ||
 		row.AddressLine1 != "" || row.AddressLine2 != "" || row.Tel != "" {
 		var prefId *uint
@@ -358,7 +303,6 @@ func (u *employeeUseCase) applyRelated(companyId uint, empID uint, row service.E
 		}
 	}
 
-	// 在籍情報（記載がある場合は全置換）
 	if len(row.Tenures) > 0 {
 		tenures := make([]model.EmployeeTenures, 0, len(row.Tenures))
 		for _, t := range row.Tenures {
@@ -387,7 +331,6 @@ func (u *employeeUseCase) applyRelated(companyId uint, empID uint, row service.E
 		}
 	}
 
-	// 所属部署（記載がある場合は全置換）
 	if len(row.DepartmentNames) > 0 {
 		var deptIds []uint
 		for _, name := range row.DepartmentNames {

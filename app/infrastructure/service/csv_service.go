@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"app/domain/model"
 	domainservice "app/domain/service"
 
 	"github.com/jszwec/csvutil"
@@ -57,11 +58,11 @@ func (s *csvService) ParseDepartmentNames(file multipart.File) ([]string, error)
 	return names, nil
 }
 
-func (s *csvService) GenerateEmployeeCSV(data []domainservice.EmployeeExportData) ([]byte, error) {
+func (s *csvService) GenerateEmployeeCSV(employees []model.Employee) ([]byte, error) {
 	maxDepts := 0
-	for _, d := range data {
-		if len(d.Departments) > maxDepts {
-			maxDepts = len(d.Departments)
+	for _, e := range employees {
+		if len(e.Departments) > maxDepts {
+			maxDepts = len(e.Departments)
 		}
 	}
 
@@ -77,31 +78,26 @@ func (s *csvService) GenerateEmployeeCSV(data []domainservice.EmployeeExportData
 		return nil, err
 	}
 
-	for _, d := range data {
+	for _, e := range employees {
 		row := []string{
-			d.Employee.StaffCode,
-			d.Employee.LastName,
-			d.Employee.FirstName,
-			d.Employee.LastNameKana,
-			d.Employee.FirstNameKana,
-			d.Employee.Email,
+			e.StaffCode, e.LastName, e.FirstName, e.LastNameKana, e.FirstNameKana, e.Email,
 		}
 
 		var postCode, prefName, city, addr1, addr2, tel string
-		if d.Address != nil {
-			postCode = derefStr(d.Address.PostCode)
-			prefName = derefStr(d.Address.PrefectureName)
-			city = derefStr(d.Address.City)
-			addr1 = derefStr(d.Address.AddressLine1)
-			addr2 = derefStr(d.Address.AddressLine2)
-			tel = derefStr(d.Address.Tel)
+		if e.Address != nil {
+			postCode = derefStr(e.Address.PostCode)
+			prefName = derefStr(e.Address.PrefectureName)
+			city = derefStr(e.Address.City)
+			addr1 = derefStr(e.Address.AddressLine1)
+			addr2 = derefStr(e.Address.AddressLine2)
+			tel = derefStr(e.Address.Tel)
 		}
 		row = append(row, postCode, prefName, city, addr1, addr2, tel)
 
 		// 在籍情報は先頭の1件のみ出力
 		var joinedOn, resignationOn, resignationType, status string
-		if len(d.Tenures) > 0 {
-			t := d.Tenures[0]
+		if len(e.Tenures) > 0 {
+			t := e.Tenures[0]
 			joinedOn = t.JoinedOn.Format("2006-01-02")
 			resignationOn = formatTimePtr(t.ResignationOn)
 			resignationType = derefStr(t.ResignationType)
@@ -110,8 +106,8 @@ func (s *csvService) GenerateEmployeeCSV(data []domainservice.EmployeeExportData
 		row = append(row, joinedOn, resignationOn, resignationType, status)
 
 		for i := 0; i < maxDepts; i++ {
-			if i < len(d.Departments) {
-				row = append(row, d.Departments[i].Name)
+			if i < len(e.Departments) {
+				row = append(row, e.Departments[i].Name)
 			} else {
 				row = append(row, "")
 			}

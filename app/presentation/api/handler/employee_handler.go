@@ -66,11 +66,11 @@ func (h *EmployeeHandler) Show(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	detail, err := h.EmployeeUseCase.GetEmployeeDetail(companyId, uint(id))
+	employee, err := h.EmployeeUseCase.GetEmployeeDetail(companyId, uint(id))
 	if err != nil {
 		return echo.ErrNotFound
 	}
-	return c.JSON(http.StatusOK, detail)
+	return c.JSON(http.StatusOK, employee)
 }
 
 func (h *EmployeeHandler) Create(c echo.Context) error {

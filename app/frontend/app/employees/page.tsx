@@ -8,6 +8,26 @@ import useApi from '@/app/api';
 type CsvColumn = { label: string; required: boolean };
 type CsvSection = { title: string; note?: string; columns: CsvColumn[] };
 
+const SAMPLE_CSV_ROWS = [
+  ['スタッフコード', '姓', '名', '姓（カナ）', '名（カナ）', 'メールアドレス', '郵便番号', '都道府県', '市区町村', '住所1', '住所2', '電話番号', '入社日', '退職日', '退職区分', 'ステータス', '部署1'],
+  ['S001', '山田', '太郎', 'ヤマダ', 'タロウ', 'yamada.taro@example.com', '100-0001', '東京都', '千代田区', '千代田1-1-1', '', '03-1234-5678', '2020-04-01', '', '', '在籍', '営業部'],
+  ['S002', '鈴木', '花子', 'スズキ', 'ハナコ', 'suzuki.hanako@example.com', '530-0001', '大阪府', '大阪市北区', '梅田2-2-2', 'ビル3F', '06-9876-5432', '2019-10-01', '2023-03-31', '自己都合', '退職', '開発部'],
+];
+
+const downloadSampleCSV = () => {
+  const bom = '﻿';
+  const csv = SAMPLE_CSV_ROWS.map((row) =>
+    row.map((cell) => (cell.includes(',') || cell.includes('"') ? `"${cell.replace(/"/g, '""')}"` : cell)).join(',')
+  ).join('\n');
+  const blob = new Blob([bom + csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'employees_sample.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
 const CSV_SECTIONS: CsvSection[] = [
   {
     title: '基本情報',
@@ -304,19 +324,30 @@ const Employees = () => {
               </div>
             </div>
 
-            <div className='flex justify-end gap-2 px-6 py-4 border-t dark:border-gray-700 shrink-0'>
+            <div className='flex items-center justify-between px-6 py-4 border-t dark:border-gray-700 shrink-0'>
               <button
-                onClick={() => setShowExportModal(false)}
-                className='text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
+                onClick={downloadSampleCSV}
+                className='flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium'
               >
-                キャンセル
+                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' />
+                </svg>
+                サンプルをダウンロード
               </button>
-              <button
-                onClick={handleExport}
-                className='text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
-              >
-                エクスポート
-              </button>
+              <div className='flex gap-2'>
+                <button
+                  onClick={() => setShowExportModal(false)}
+                  className='text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleExport}
+                  className='text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
+                >
+                  エクスポート
+                </button>
+              </div>
             </div>
           </div>
         </div>
