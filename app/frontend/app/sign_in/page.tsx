@@ -86,6 +86,14 @@ const SignIn = () => {
           Submit
         </button>
       </form>
+      <div>
+        <p>サンプル</p>
+        <ul>
+          <li>* admin@example.com / password1</li>
+          <li>* user1@example.com / password2</li>
+          <li>* user2@example.com / password3</li>
+        </ul>
+      </div>
     </main>
   );
 }

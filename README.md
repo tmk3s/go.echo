@@ -140,6 +140,37 @@ docker compose exec backend go run ./cmd/refresh/main.go
 docker compose exec backend go run ./cmd/seed/main.go
 ```
 
+#### テスト実行
+全パッケージのテストを実行する。
+```bash
+docker compose exec backend go test ./...
+```
+
+パッケージ単位で実行する場合：
+```bash
+# usecase
+docker compose exec backend go test ./usecase/...
+
+# repository（MySQL の develop_test DB を使用）
+docker compose exec backend go test ./infrastructure/repository/...
+
+# CSV service
+docker compose exec backend go test ./infrastructure/service/...
+```
+
+特定のテストのみ実行する場合：
+```bash
+docker compose exec backend go test ./usecase/... -run TestBulkCreateFromCSV
+```
+
+テスト概要：
+
+| 層 | 種別 | 備考 |
+|---|---|---|
+| `usecase/` | ユニットテスト（モック） | DB 接続不要 |
+| `infrastructure/repository/` | インテグレーションテスト | MySQL（develop_test DB）を使用 |
+| `infrastructure/service/` | ユニットテスト | DB 接続不要 |
+
 ### ディレクトリ構造
 - domain
   - model
