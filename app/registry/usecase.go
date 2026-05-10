@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"app/infrastructure/worker"
 	"app/usecase"
 )
 
@@ -34,7 +35,13 @@ func (i *Registry) NewEmployeeUseCase() usecase.EmployeeUseCase {
 		i.NewDepartmentRepository(),
 		i.NewPrefectureRepository(),
 		i.NewCsvService(),
+		i.NewJobRepository(),
+		worker.NewAsynqEnqueuer(i.AsynqClient),
 	)
+}
+
+func (i *Registry) NewJobUseCase() usecase.JobUseCase {
+	return usecase.NewJobUseCase(i.NewJobRepository())
 }
 
 func (i *Registry) NewPrefectureUseCase() usecase.PrefectureUseCase {

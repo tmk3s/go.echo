@@ -28,3 +28,7 @@ func (i *Registry) NewPrefectureRepository() repository.PrefectureRepository {
 func (i *Registry) NewCompanyRepository() repository.CompanyRepository {
 	return repositoryImpl.NewCompanyRepository(i.DbConn)
 }
+
+func (i *Registry) NewJobRepository() repository.JobRepository {
+	return repositoryImpl.NewJobRepository(i.DbConn)
+}

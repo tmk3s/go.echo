@@ -58,6 +58,7 @@ func ExecuteMigrate(db *gorm.DB) error {
 		&model.EmployeeDepartments{},
 		&model.EmployeeAddress{},
 		&model.EmployeeTenures{},
+		&model.Job{},
 	)
 	return err
 }

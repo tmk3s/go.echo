@@ -14,6 +14,7 @@ func (i *Registry) NewAppHandler() *handler.AppHandler {
 		EmployeeHandler:   *i.NewEmployeeHandler(),
 		PrefectureHandler: *i.NewPrefectureHandler(),
 		CompanyHandler:    *i.NewCompanyHandler(),
+		JobHandler:        *i.NewJobHandler(),
 	}
 	return appHandler
 }

@@ -12,6 +12,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     # env_file: # .envファイル
     #   - ./build/.go_env
     ports:
@@ -25,6 +27,7 @@ services:
       MYSQL_DATABASE: 'develop'
       JWT_SECRET: 'change-me-in-production'
       APP_ENV: 'development'
+      REDIS_ADDR: 'redis:6379'
   front: # サービス名
     build: # ビルドに使うDockerファイルのパス
       context: .
@@ -39,6 +42,10 @@ services:
       - "3000:3000"
     environment:
       - TZ=Asia/Tokyo
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
   db:
     image: mysql
     command: --default-authentication-plugin=mysql_native_password

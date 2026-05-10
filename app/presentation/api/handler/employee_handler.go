@@ -109,10 +109,11 @@ func (h *EmployeeHandler) BulkCreate(c echo.Context) error {
 	}
 
 	companyId := CurrentCompanyId(c)
-	if err := h.EmployeeUseCase.BulkCreateFromCSV(companyId, file); err != nil {
+	job, err := h.EmployeeUseCase.EnqueueBulkCreate(companyId, file)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusAccepted, map[string]uint{"job_id": job.ID})
 }
 
 func (h *EmployeeHandler) BulkUpdate(c echo.Context) error {
@@ -126,10 +127,11 @@ func (h *EmployeeHandler) BulkUpdate(c echo.Context) error {
 	}
 
 	companyId := CurrentCompanyId(c)
-	if err := h.EmployeeUseCase.BulkUpdateFromCSV(companyId, file); err != nil {
+	job, err := h.EmployeeUseCase.EnqueueBulkUpdate(companyId, file)
+	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	return c.JSON(http.StatusOK, nil)
+	return c.JSON(http.StatusAccepted, map[string]uint{"job_id": job.ID})
 }
 
 func (h *EmployeeHandler) Update(c echo.Context) error {

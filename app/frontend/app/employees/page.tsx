@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import RootLayout from '@/components/RootLayout';
 import useApi from '@/app/api';
@@ -79,6 +79,17 @@ type Employee = {
   staff_code: string;
 };
 
+type JobProgress = {
+  jobId: number;
+  jobType: string;
+  status: string;
+  totalCount: number;
+  processedCount: number;
+  errorMessage: string;
+};
+
+const jobTypeLabel = (t: string) => t === 'bulk_create' ? '一括登録' : '一括更新';
+
 const Employees = () => {
   const router = useRouter();
   const api = useApi();
@@ -89,9 +100,11 @@ const Employees = () => {
   const [showBulkCreateModal, setShowBulkCreateModal] = useState(false);
   const [showBulkUpdateModal, setShowBulkUpdateModal] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [jobProgress, setJobProgress] = useState<JobProgress | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const bulkCreateRef = useRef<HTMLInputElement>(null);
   const bulkUpdateRef = useRef<HTMLInputElement>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -103,13 +116,40 @@ const Employees = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const fetchEmployees = () => {
+  const fetchEmployees = useCallback(() => {
     api.get('/api/employees').then((res) => setEmployees(res.data ?? []));
-  };
+  }, []);
 
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  // ジョブ進捗ポーリング
+  useEffect(() => {
+    if (!jobProgress) return;
+
+    if (jobProgress.status === 'completed' || jobProgress.status === 'failed') {
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+      if (jobProgress.status === 'completed') fetchEmployees();
+      return;
+    }
+
+    if (pollingRef.current) return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await api.get(`/api/jobs/${jobProgress.jobId}`);
+        const d = res.data;
+        setJobProgress((prev) =>
+          prev ? { ...prev, status: d.status, totalCount: d.total_count, processedCount: d.processed_count, errorMessage: d.error_message ?? '' } : null
+        );
+      } catch {}
+    }, 2000);
+
+    return () => {
+      if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    };
+  }, [jobProgress?.jobId, jobProgress?.status]);
 
   const filtered = useMemo(() => {
     if (!query) return employees;
@@ -133,17 +173,18 @@ const Employees = () => {
     setShowExportModal(false);
   };
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>, endpoint: string) => {
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>, endpoint: string, jobType: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const form = new FormData();
     form.append('file', file);
     setImportError(null);
     try {
-      await api.post(endpoint, form, {
+      const res = await api.post(endpoint, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      fetchEmployees();
+      const { job_id } = res.data;
+      setJobProgress({ jobId: job_id, jobType, status: 'pending', totalCount: 0, processedCount: 0, errorMessage: '' });
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       if (msg) setImportError(msg);
@@ -190,14 +231,14 @@ const Employees = () => {
             type='file'
             accept='.csv'
             className='hidden'
-            onChange={(e) => handleImport(e, '/api/employees/import/create')}
+            onChange={(e) => handleImport(e, '/api/employees/import/create', 'bulk_create')}
           />
           <input
             ref={bulkUpdateRef}
             type='file'
             accept='.csv'
             className='hidden'
-            onChange={(e) => handleImport(e, '/api/employees/import/update')}
+            onChange={(e) => handleImport(e, '/api/employees/import/update', 'bulk_update')}
           />
           <button
             onClick={() => router.push('/employees/new')}
@@ -261,6 +302,15 @@ const Employees = () => {
           <p className='mt-4 text-center text-gray-500'>該当する社員が見つかりません</p>
         )}
       </div>
+
+      {/* バックグラウンド処理の進捗モーダル */}
+      {jobProgress && (
+        <JobProgressModal
+          progress={jobProgress}
+          onClose={() => setJobProgress(null)}
+        />
+      )}
+
       {showBulkCreateModal && (
         <ImportModal
           title='一括登録'
@@ -355,6 +405,94 @@ const Employees = () => {
     </RootLayout>
   );
 };
+
+// ---- ジョブ進捗モーダル ----
+
+type JobProgressModalProps = {
+  progress: JobProgress;
+  onClose: () => void;
+};
+
+const JobProgressModal = ({ progress, onClose }: JobProgressModalProps) => {
+  const isDone = progress.status === 'completed' || progress.status === 'failed';
+  const pct = progress.totalCount > 0 ? Math.round((progress.processedCount / progress.totalCount) * 100) : 0;
+
+  const statusLabel = {
+    pending:    '待機中...',
+    processing: '処理中...',
+    completed:  '完了',
+    failed:     'エラー',
+  }[progress.status] ?? progress.status;
+
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
+      <div className='bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md mx-4'>
+        <div className='flex items-center justify-between px-6 py-4 border-b dark:border-gray-700'>
+          <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>
+            {jobTypeLabel(progress.jobType)}
+          </h2>
+          {isDone && (
+            <button onClick={onClose} className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'>
+              <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className='px-6 py-6 space-y-4'>
+          <div className='flex items-center justify-between text-sm'>
+            <span className={`font-medium ${progress.status === 'failed' ? 'text-red-600' : progress.status === 'completed' ? 'text-green-600' : 'text-gray-600 dark:text-gray-300'}`}>
+              {statusLabel}
+            </span>
+            {progress.totalCount > 0 && (
+              <span className='text-gray-500 dark:text-gray-400'>
+                {progress.processedCount} / {progress.totalCount} 件
+              </span>
+            )}
+          </div>
+
+          {/* プログレスバー */}
+          <div className='w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700'>
+            <div
+              className={`h-2.5 rounded-full transition-all duration-500 ${progress.status === 'failed' ? 'bg-red-500' : progress.status === 'completed' ? 'bg-green-500' : 'bg-blue-600'}`}
+              style={{ width: `${progress.status === 'completed' ? 100 : pct}%` }}
+            />
+          </div>
+
+          {progress.status === 'failed' && progress.errorMessage && (
+            <div className='p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800'>
+              <p className='text-sm text-red-700 dark:text-red-400'>{progress.errorMessage}</p>
+            </div>
+          )}
+
+          {progress.status === 'completed' && (
+            <p className='text-sm text-green-600 dark:text-green-400'>
+              {progress.totalCount} 件の処理が完了しました。
+            </p>
+          )}
+
+          {!isDone && (
+            <p className='text-xs text-gray-400 dark:text-gray-500'>バックグラウンドで処理中です。このウィンドウを閉じても処理は継続されます。</p>
+          )}
+        </div>
+
+        {isDone && (
+          <div className='flex justify-end px-6 py-4 border-t dark:border-gray-700'>
+            <button
+              onClick={onClose}
+              className='text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
+            >
+              閉じる
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ---- インポートモーダル ----
 
 type ImportModalProps = {
   title: string;

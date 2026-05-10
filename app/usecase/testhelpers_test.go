@@ -159,6 +159,70 @@ func (m *mockCompanyRepo) Update(c *model.Company) error {
 	return nil
 }
 
+// ---- mockJobRepo ----
+
+type mockJobRepo struct {
+	jobs        map[uint]*model.Job
+	nextID      uint
+	finalStatus string
+	progressLog []int
+	failMsg     string
+	createErr   error
+}
+
+func (m *mockJobRepo) Create(job *model.Job) (*model.Job, error) {
+	if m.createErr != nil {
+		return nil, m.createErr
+	}
+	m.nextID++
+	job.ID = m.nextID
+	if m.jobs == nil {
+		m.jobs = make(map[uint]*model.Job)
+	}
+	cp := *job
+	m.jobs[job.ID] = &cp
+	return job, nil
+}
+func (m *mockJobRepo) GetById(id uint) (*model.Job, error) {
+	if m.jobs != nil {
+		if j, ok := m.jobs[id]; ok {
+			return j, nil
+		}
+	}
+	return nil, errNotFound
+}
+func (m *mockJobRepo) StartProcessing(_ uint, _ int) error { return nil }
+func (m *mockJobRepo) UpdateProgress(_ uint, count int) error {
+	m.progressLog = append(m.progressLog, count)
+	return nil
+}
+func (m *mockJobRepo) Complete(_ uint) error {
+	m.finalStatus = "completed"
+	return nil
+}
+func (m *mockJobRepo) Fail(_ uint, msg string) error {
+	m.failMsg = msg
+	m.finalStatus = "failed"
+	return nil
+}
+
+// ---- mockBulkImportEnqueuer ----
+
+type mockBulkImportEnqueuer struct {
+	enqueuedCreateJobIds []uint
+	enqueuedUpdateJobIds []uint
+	enqueueErr           error
+}
+
+func (m *mockBulkImportEnqueuer) EnqueueBulkCreate(jobId uint) error {
+	m.enqueuedCreateJobIds = append(m.enqueuedCreateJobIds, jobId)
+	return m.enqueueErr
+}
+func (m *mockBulkImportEnqueuer) EnqueueBulkUpdate(jobId uint) error {
+	m.enqueuedUpdateJobIds = append(m.enqueuedUpdateJobIds, jobId)
+	return m.enqueueErr
+}
+
 // ---- mockCsvService ----
 
 type mockCsvService struct {

@@ -1,7 +1,10 @@
 package usecase
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"strings"
 	"time"
@@ -9,7 +12,6 @@ import (
 	"app/domain/model"
 	"app/domain/repository"
 	"app/domain/service"
-	"gorm.io/gorm"
 )
 
 type TenureUpdateInput struct {
@@ -37,14 +39,22 @@ type UpdateAllInput struct {
 	DepartmentIds []uint
 }
 
+// BulkImportEnqueuer is the interface for enqueuing bulk import background tasks.
+type BulkImportEnqueuer interface {
+	EnqueueBulkCreate(jobId uint) error
+	EnqueueBulkUpdate(jobId uint) error
+}
+
 type EmployeeUseCase interface {
 	GetEmployees(companyId uint) (*[]model.Employee, error)
 	GetEmployeeDetail(companyId uint, id uint) (*model.Employee, error)
 	Create(companyId uint, lastName string, firstName string, lastNameKana string, firstNameKana string, email string, staffCode string) error
 	UpdateAll(companyId uint, id uint, input UpdateAllInput) error
 	ExportCSV(companyId uint) ([]byte, error)
-	BulkCreateFromCSV(companyId uint, file multipart.File) error
-	BulkUpdateFromCSV(companyId uint, file multipart.File) error
+	EnqueueBulkCreate(companyId uint, file multipart.File) (*model.Job, error)
+	EnqueueBulkUpdate(companyId uint, file multipart.File) (*model.Job, error)
+	ProcessBulkCreate(ctx context.Context, jobId uint) error
+	ProcessBulkUpdate(ctx context.Context, jobId uint) error
 }
 
 type employeeUseCase struct {
@@ -52,6 +62,8 @@ type employeeUseCase struct {
 	repo       repository.EmployeeRepository
 	deptRepo   repository.DepartmentRepository
 	prefRepo   repository.PrefectureRepository
+	jobRepo    repository.JobRepository
+	enqueuer   BulkImportEnqueuer
 }
 
 func NewEmployeeUseCase(
@@ -59,8 +71,17 @@ func NewEmployeeUseCase(
 	deptRepo repository.DepartmentRepository,
 	prefRepo repository.PrefectureRepository,
 	csv service.CsvService,
+	jobRepo repository.JobRepository,
+	enqueuer BulkImportEnqueuer,
 ) EmployeeUseCase {
-	return &employeeUseCase{repo: r, deptRepo: deptRepo, prefRepo: prefRepo, csvService: csv}
+	return &employeeUseCase{
+		repo:       r,
+		deptRepo:   deptRepo,
+		prefRepo:   prefRepo,
+		csvService: csv,
+		jobRepo:    jobRepo,
+		enqueuer:   enqueuer,
+	}
 }
 
 func (u *employeeUseCase) GetEmployees(companyId uint) (*[]model.Employee, error) {
@@ -164,13 +185,72 @@ func (u *employeeUseCase) ExportCSV(companyId uint) ([]byte, error) {
 	return u.csvService.GenerateEmployeeCSV(employees)
 }
 
-func (u *employeeUseCase) BulkCreateFromCSV(companyId uint, file multipart.File) error {
-	rows, err := u.csvService.ParseEmployeeRows(file)
+func (u *employeeUseCase) EnqueueBulkCreate(companyId uint, file multipart.File) (*model.Job, error) {
+	csvBytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	job, err := u.jobRepo.Create(&model.Job{
+		CompanyId: companyId,
+		JobType:   "employee:bulk_create",
+		Status:    "pending",
+		FileData:  csvBytes,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := u.enqueuer.EnqueueBulkCreate(job.ID); err != nil {
+		u.jobRepo.Fail(job.ID, err.Error())
+		return nil, err
+	}
+	return job, nil
+}
+
+func (u *employeeUseCase) EnqueueBulkUpdate(companyId uint, file multipart.File) (*model.Job, error) {
+	csvBytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	job, err := u.jobRepo.Create(&model.Job{
+		CompanyId: companyId,
+		JobType:   "employee:bulk_update",
+		Status:    "pending",
+		FileData:  csvBytes,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := u.enqueuer.EnqueueBulkUpdate(job.ID); err != nil {
+		u.jobRepo.Fail(job.ID, err.Error())
+		return nil, err
+	}
+	return job, nil
+}
+
+// csvReadCloser wraps bytes.Reader to satisfy multipart.File (adds no-op Close).
+type csvReadCloser struct{ *bytes.Reader }
+
+func (csvReadCloser) Close() error { return nil }
+
+func (u *employeeUseCase) ProcessBulkCreate(ctx context.Context, jobId uint) error {
+	job, err := u.jobRepo.GetById(jobId)
 	if err != nil {
 		return err
 	}
-	lookup, err := u.buildImportLookup(companyId)
+
+	rows, err := u.csvService.ParseEmployeeRows(csvReadCloser{bytes.NewReader(job.FileData)})
 	if err != nil {
+		u.jobRepo.Fail(jobId, err.Error())
+		return err
+	}
+
+	lookup, err := u.buildImportLookup(job.CompanyId)
+	if err != nil {
+		u.jobRepo.Fail(jobId, err.Error())
 		return err
 	}
 
@@ -181,12 +261,25 @@ func (u *employeeUseCase) BulkCreateFromCSV(companyId uint, file multipart.File)
 		}
 	}
 	if len(duplicates) > 0 {
-		return fmt.Errorf("以下のスタッフコードはすでに登録されています: %s", strings.Join(duplicates, ", "))
+		msg := fmt.Sprintf("以下のスタッフコードはすでに登録されています: %s", strings.Join(duplicates, ", "))
+		u.jobRepo.Fail(jobId, msg)
+		return fmt.Errorf("%s", msg)
 	}
 
-	for _, row := range rows {
+	if err := u.jobRepo.StartProcessing(jobId, len(rows)); err != nil {
+		return err
+	}
+
+	for i, row := range rows {
+		select {
+		case <-ctx.Done():
+			u.jobRepo.Fail(jobId, "処理がキャンセルされました")
+			return ctx.Err()
+		default:
+		}
+
 		emp := &model.Employee{
-			CompanyId:     companyId,
+			CompanyId:     job.CompanyId,
 			StaffCode:     row.StaffCode,
 			LastName:      row.LastName,
 			FirstName:     row.FirstName,
@@ -196,22 +289,34 @@ func (u *employeeUseCase) BulkCreateFromCSV(companyId uint, file multipart.File)
 		}
 		created, err := u.repo.Create(emp)
 		if err != nil {
+			u.jobRepo.Fail(jobId, fmt.Sprintf("行%d: %v", i+1, err))
 			return err
 		}
-		if err := u.applyRelated(companyId, created.ID, row, lookup); err != nil {
+		if err := u.applyRelated(job.CompanyId, created.ID, row, lookup); err != nil {
+			u.jobRepo.Fail(jobId, fmt.Sprintf("行%d: %v", i+1, err))
 			return err
 		}
+		u.jobRepo.UpdateProgress(jobId, i+1)
 	}
-	return nil
+
+	return u.jobRepo.Complete(jobId)
 }
 
-func (u *employeeUseCase) BulkUpdateFromCSV(companyId uint, file multipart.File) error {
-	rows, err := u.csvService.ParseEmployeeRows(file)
+func (u *employeeUseCase) ProcessBulkUpdate(ctx context.Context, jobId uint) error {
+	job, err := u.jobRepo.GetById(jobId)
 	if err != nil {
 		return err
 	}
-	lookup, err := u.buildImportLookup(companyId)
+
+	rows, err := u.csvService.ParseEmployeeRows(csvReadCloser{bytes.NewReader(job.FileData)})
 	if err != nil {
+		u.jobRepo.Fail(jobId, err.Error())
+		return err
+	}
+
+	lookup, err := u.buildImportLookup(job.CompanyId)
+	if err != nil {
+		u.jobRepo.Fail(jobId, err.Error())
 		return err
 	}
 
@@ -222,10 +327,23 @@ func (u *employeeUseCase) BulkUpdateFromCSV(companyId uint, file multipart.File)
 		}
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("以下のスタッフコードに紐づく社員が見つかりません: %s", strings.Join(missing, ", "))
+		msg := fmt.Sprintf("以下のスタッフコードに紐づく社員が見つかりません: %s", strings.Join(missing, ", "))
+		u.jobRepo.Fail(jobId, msg)
+		return fmt.Errorf("%s", msg)
 	}
 
-	for _, row := range rows {
+	if err := u.jobRepo.StartProcessing(jobId, len(rows)); err != nil {
+		return err
+	}
+
+	for i, row := range rows {
+		select {
+		case <-ctx.Done():
+			u.jobRepo.Fail(jobId, "処理がキャンセルされました")
+			return ctx.Err()
+		default:
+		}
+
 		emp := lookup.empByCode[row.StaffCode]
 		emp.LastName = row.LastName
 		emp.FirstName = row.FirstName
@@ -233,13 +351,17 @@ func (u *employeeUseCase) BulkUpdateFromCSV(companyId uint, file multipart.File)
 		emp.FirstNameKana = row.FirstNameKana
 		emp.Email = row.Email
 		if err := u.repo.UpdateEmployee(emp); err != nil {
+			u.jobRepo.Fail(jobId, fmt.Sprintf("行%d: %v", i+1, err))
 			return err
 		}
-		if err := u.applyRelated(companyId, emp.ID, row, lookup); err != nil {
+		if err := u.applyRelated(job.CompanyId, emp.ID, row, lookup); err != nil {
+			u.jobRepo.Fail(jobId, fmt.Sprintf("行%d: %v", i+1, err))
 			return err
 		}
+		u.jobRepo.UpdateProgress(jobId, i+1)
 	}
-	return nil
+
+	return u.jobRepo.Complete(jobId)
 }
 
 type importLookup struct {
@@ -351,6 +473,3 @@ func nilStr(s string) *string {
 	}
 	return &s
 }
-
-// gorm.ErrRecordNotFound を参照するためのブランクインポート抑止
-var _ = gorm.ErrRecordNotFound

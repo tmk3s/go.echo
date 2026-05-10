@@ -46,4 +46,6 @@ func SteupRouter(e *echo.Echo, h handler.AppHandler) {
 
 	api.GET("/company", h.CompanyHandler.Show)
 	api.PUT("/company", h.CompanyHandler.Update)
+
+	api.GET("/jobs/:id", h.JobHandler.GetStatus)
 }

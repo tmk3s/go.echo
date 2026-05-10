@@ -9,4 +9,5 @@ type AppHandler struct {
 	EmployeeHandler   EmployeeHandler
 	PrefectureHandler PrefectureHandler
 	CompanyHandler    CompanyHandler
+	JobHandler        JobHandler
 }
