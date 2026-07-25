@@ -1,6 +1,5 @@
 "use client";
 
-import Axios from 'axios';
 import Cookies from 'js-cookie';
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from 'react';
@@ -80,14 +79,9 @@ const Todos =  () => {
   const [todos, setTodos] = useState<any>() // useState<Array<Todo>>();
   const [login, setLogin] = useState(false);
 
+  // 401（セッション切れ）はapi.tsxの共通インターセプターがトップページへリダイレクトする
   const unauthorized = (e: any) => {
     console.error(e);
-    if (Axios.isAxiosError(e) && e.response && e.response.status === 401) {
-      console.log('401 Error!!');
-      console.log(e.message); //Axiosの例外オブジェクトとして扱える
-      localStorage.setItem("unauthorizedError", "ログインしてください");
-      window.location.href = '/sign_in'
-    }
   }
 
   const fetchTodos = async () => {

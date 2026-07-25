@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(docker compose:*)",
-      "Bash(go build *)"
+      "Bash(go build *)",
+      "Bash(docker version *)",
+      "Bash(docker info *)",
+      "Bash(docker pull *)",
+      "Bash(docker compose *)",
+      "Bash(docker volume *)",
+      "Bash(gh pr *)",
+      "Bash(echo \"EXIT:$?\")"
     ]
   }
 }

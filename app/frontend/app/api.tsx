@@ -12,5 +12,17 @@ export default (): AxiosInstance => {
     withCredentials: true,
     responseType: 'json'
   })
+
+  // セッション切れ（401）の場合はトップページへ戻す
+  instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        window.location.href = '/';
+      }
+      return Promise.reject(error);
+    }
+  )
+
   return instance;
 }

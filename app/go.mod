@@ -1,6 +1,6 @@
 module app
 
-go 1.22.4
+go 1.26.0
 
 require (
 	github.com/golang-jwt/jwt/v5 v5.0.0

@@ -48,10 +48,10 @@ services:
       - "6379:6379"
   db:
     image: mysql
-    command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: 'pass'
+      MYSQL_DATABASE: 'develop'
     ports:
       - '3306:3306'
     volumes:

@@ -1,11 +1,13 @@
 # https://hub.docker.com/_/golang
-FROM golang:1.22
+# alpineベースに変更（イメージを軽量化し、脆弱性を減らすため）
+FROM golang:1.26-alpine
 
 ENV LANG C.UTF-8
 ENV APP_ROOT /app
 WORKDIR /usr/src/app
 
-RUN apt-get update -qq && apt-get install -y vim && apt-get install -y nodejs npm
+# apk（Alpine）に変更。build-baseはgorm.io/driver/sqliteがcgoを使う（Cコンパイラが必要）ため追加
+RUN apk update && apk add --no-cache vim nodejs npm build-base
 
 # pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
 COPY app/go.mod app/go.sum ./
