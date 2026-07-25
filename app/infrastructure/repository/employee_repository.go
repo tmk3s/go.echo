@@ -190,6 +190,12 @@ func (r *employeeRepository) UpdateDepartments(companyId uint, employeeId uint, 
 	})
 }
 
+func (r *employeeRepository) Transaction(fn func(repo repository.EmployeeRepository) error) error {
+	return r.Conn.Transaction(func(tx *gorm.DB) error {
+		return fn(&employeeRepository{Conn: tx})
+	})
+}
+
 func (r *employeeRepository) ReplaceTenures(companyId uint, employeeId uint, tenures []model.EmployeeTenures) error {
 	return r.Conn.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("company_id = ? AND employee_id = ?", companyId, employeeId).

@@ -101,61 +101,63 @@ func (u *employeeUseCase) Create(companyId uint, lastName string, firstName stri
 }
 
 func (u *employeeUseCase) UpdateAll(companyId uint, id uint, input UpdateAllInput) error {
-	employee, err := u.repo.GetDetail(companyId, id)
-	if err != nil {
-		return err
-	}
-	employee.LastName = input.LastName
-	employee.FirstName = input.FirstName
-	employee.LastNameKana = input.LastNameKana
-	employee.FirstNameKana = input.FirstNameKana
-	employee.Email = input.Email
-	employee.StaffCode = input.StaffCode
-	if err := u.repo.UpdateEmployee(employee); err != nil {
-		return err
-	}
-
-	address := &model.EmployeeAddress{
-		CompanyId:    companyId,
-		EmployeeId:   id,
-		PostCode:     input.PostCode,
-		PrefectureId: input.PrefectureId,
-		City:         input.City,
-		AddressLine1: input.AddressLine1,
-		AddressLine2: input.AddressLine2,
-		Tel:          input.Tel,
-	}
-	if err := u.repo.UpsertAddress(address); err != nil {
-		return err
-	}
-
-	for _, t := range input.Tenures {
-		target := findTenure(employee.Tenures, t.ID)
-		if target == nil {
-			continue
-		}
-		parsed, err := time.Parse("2006-01-02", t.JoinedOn)
+	return u.repo.Transaction(func(repo repository.EmployeeRepository) error {
+		employee, err := repo.GetDetail(companyId, id)
 		if err != nil {
 			return err
 		}
-		target.JoinedOn = parsed
-		if t.ResignationOn != nil && *t.ResignationOn != "" {
-			rt, err := time.Parse("2006-01-02", *t.ResignationOn)
+		employee.LastName = input.LastName
+		employee.FirstName = input.FirstName
+		employee.LastNameKana = input.LastNameKana
+		employee.FirstNameKana = input.FirstNameKana
+		employee.Email = input.Email
+		employee.StaffCode = input.StaffCode
+		if err := repo.UpdateEmployee(employee); err != nil {
+			return err
+		}
+
+		address := &model.EmployeeAddress{
+			CompanyId:    companyId,
+			EmployeeId:   id,
+			PostCode:     input.PostCode,
+			PrefectureId: input.PrefectureId,
+			City:         input.City,
+			AddressLine1: input.AddressLine1,
+			AddressLine2: input.AddressLine2,
+			Tel:          input.Tel,
+		}
+		if err := repo.UpsertAddress(address); err != nil {
+			return err
+		}
+
+		for _, t := range input.Tenures {
+			target := findTenure(employee.Tenures, t.ID)
+			if target == nil {
+				continue
+			}
+			parsed, err := time.Parse("2006-01-02", t.JoinedOn)
 			if err != nil {
 				return err
 			}
-			target.ResignationOn = &rt
-		} else {
-			target.ResignationOn = nil
+			target.JoinedOn = parsed
+			if t.ResignationOn != nil && *t.ResignationOn != "" {
+				rt, err := time.Parse("2006-01-02", *t.ResignationOn)
+				if err != nil {
+					return err
+				}
+				target.ResignationOn = &rt
+			} else {
+				target.ResignationOn = nil
+			}
+			target.ResignationType = t.ResignationType
+			target.Status = t.Status
+			if err := repo.UpdateTenure(target); err != nil {
+				return err
+			}
 		}
-		target.ResignationType = t.ResignationType
-		target.Status = t.Status
-		if err := u.repo.UpdateTenure(target); err != nil {
-			return err
-		}
-	}
 
-	return u.repo.UpdateDepartments(companyId, id, input.DepartmentIds)
+		return repo.UpdateDepartments(companyId, id, input.DepartmentIds)
+	})
 }
 
 func findTenure(tenures []model.EmployeeTenures, id uint) *model.EmployeeTenures {

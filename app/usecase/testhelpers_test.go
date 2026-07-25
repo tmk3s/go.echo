@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 
 	"app/domain/model"
+	"app/domain/repository"
 	domainservice "app/domain/service"
 )
 
@@ -113,6 +114,9 @@ func (m *mockEmployeeRepo) ReplaceTenures(cid, eid uint, tenures []model.Employe
 		return m.replaceTenures(cid, eid, tenures)
 	}
 	return nil
+}
+func (m *mockEmployeeRepo) Transaction(fn func(repository.EmployeeRepository) error) error {
+	return fn(m)
 }
 
 // ---- mockDeptRepo ----

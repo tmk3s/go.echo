@@ -13,4 +13,5 @@ type EmployeeRepository interface {
 	UpdateTenure(tenure *model.EmployeeTenures) error
 	UpdateDepartments(companyId uint, employeeId uint, departmentIds []uint) error
 	ReplaceTenures(companyId uint, employeeId uint, tenures []model.EmployeeTenures) error
+	Transaction(fn func(repo EmployeeRepository) error) error
 }
