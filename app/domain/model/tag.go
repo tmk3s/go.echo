@@ -6,5 +6,5 @@ import (
 
 type Tag struct {
 	gorm.Model
-	Name string `json:"name" gorm:"index`
+	Name string `json:"name" gorm:"index"`
 }
