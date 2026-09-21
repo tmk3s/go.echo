@@ -4,38 +4,23 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  /* カード(bg-white)と差が出るよう、背景はわずかにグレーにする */
+  --background-rgb: 243, 244, 246;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
-/* .light-mode {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-.dark-mode {
+/* システム設定に従う場合も含め、dark クラスの有無だけで切り替える
+   (クラスは ThemeToggle と layout.tsx のインラインスクリプトが付け外しする) */
+.dark {
   --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0;
-} */
+  --background-rgb: 0, 0, 0;
+}
 
+/* グラデーション(Next.js のスターター由来)は body の高さでタイルが繰り返され、
+   コンテンツが短いページで下側に色の境目が出るため、単色にしている */
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background-color: rgb(var(--background-rgb));
+  min-height: 100vh;
 }
 
 @layer utilities {
