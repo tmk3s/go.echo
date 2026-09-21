@@ -118,6 +118,11 @@ func (s *csvService) GenerateEmployeeCSV(employees []model.Employee) ([]byte, er
 		}
 	}
 	w.Flush()
+	// Flush はエラーを返さないため、書き込み失敗を Error() で確認する
+	// (確認しないと切り詰められた CSV が正常なダウンロードとして配信される)
+	if err := w.Error(); err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), nil
 }
 

@@ -49,5 +49,8 @@ func (i *Registry) NewPrefectureUseCase() usecase.PrefectureUseCase {
 }
 
 func (i *Registry) NewCompanyUseCase() usecase.CompanyUseCase {
-	return usecase.NewCompanyUseCase(i.NewCompanyRepository())
+	return usecase.NewCompanyUseCase(
+		i.NewCompanyRepository(),
+		i.NewUserRepository(),
+	)
 }

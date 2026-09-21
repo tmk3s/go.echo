@@ -53,7 +53,7 @@ func TestDepartmentUpdate_ChangesName(t *testing.T) {
 	repo := &mockDeptRepo{byId: dept}
 	uc := newDeptUC(repo, &mockCsvService{})
 
-	if err := uc.Update(1, "新部署名"); err != nil {
+	if err := uc.Update(1, 1, "新部署名"); err != nil {
 		t.Fatal(err)
 	}
 	// department name should be updated in-place before repo.Update is called
@@ -73,7 +73,7 @@ func TestDepartmentDelete_CallsRepo(t *testing.T) {
 	_ = repo // Delete is already stubbed in mockDeptRepo
 
 	uc := newDeptUC(repo, &mockCsvService{})
-	if err := uc.Delete(1); err != nil {
+	if err := uc.Delete(1, 1); err != nil {
 		t.Fatal(err)
 	}
 	_ = deleted // deletion happens via repo.Delete which is a no-op in the mock
@@ -133,5 +133,27 @@ func TestUpload_CreatesAllWhenNoneExist(t *testing.T) {
 	}
 	if repo.createCount != 2 {
 		t.Errorf("want 2 creates, got %d", repo.createCount)
+	}
+}
+
+// ---- 会社スコープ ----
+
+func TestDepartmentUpdate_OtherCompany_ReturnsError(t *testing.T) {
+	// byId が nil のとき mockDeptRepo は errNotFound を返す
+	// (実装では company_id 条件によって他社の部署が取得できない)
+	repo := &mockDeptRepo{byId: nil}
+	uc := newDeptUC(repo, &mockCsvService{})
+
+	if err := uc.Update(1, 999, "乗っ取り"); err == nil {
+		t.Fatal("want error when updating another company's department, got nil")
+	}
+}
+
+func TestDepartmentDelete_OtherCompany_ReturnsError(t *testing.T) {
+	repo := &mockDeptRepo{byId: nil}
+	uc := newDeptUC(repo, &mockCsvService{})
+
+	if err := uc.Delete(1, 999); err == nil {
+		t.Fatal("want error when deleting another company's department, got nil")
 	}
 }

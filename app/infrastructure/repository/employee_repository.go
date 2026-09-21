@@ -11,15 +11,32 @@ import (
 
 type employeeRepository struct {
 	Conn *gorm.DB
+	// inTx は Transaction() から作られたインスタンスかどうか。
+	// すでにトランザクション内であれば、内部メソッドが重ねて
+	// トランザクションを開かないようにするために使う。
+	inTx bool
 }
 
 func NewEmployeeRepository(Conn *gorm.DB) repository.EmployeeRepository {
-	return &employeeRepository{Conn}
+	return &employeeRepository{Conn: Conn}
+}
+
+// transaction はトランザクションが必要な処理を実行する。
+// すでにトランザクション内の場合は SAVEPOINT を張らずにそのまま実行する。
+// CSV取込のように1トランザクション内で何千回も呼ばれると、
+// SAVEPOINT が解放されずに積み上がっていくため。
+func (r *employeeRepository) transaction(fn func(tx *gorm.DB) error) error {
+	if r.inTx {
+		return fn(r.Conn)
+	}
+	return r.Conn.Transaction(fn)
 }
 
 func (r *employeeRepository) GetList(companyId uint) ([]model.Employee, error) {
 	var employees []model.Employee
-	err := r.Conn.Where(model.Employee{CompanyId: companyId}).Find(&employees).Error
+	// 構造体でクエリを実行すると GORM はゼロ値のフィールドを条件に使わないため、
+	// companyId が 0 のときに条件ごと消えて全社のデータが返ってしまう。明示的に条件を書く。
+	err := r.Conn.Where("company_id = ?", companyId).Find(&employees).Error
 	return employees, err
 }
 
@@ -170,7 +187,7 @@ func (r *employeeRepository) UpdateTenure(tenure *model.EmployeeTenures) error {
 }
 
 func (r *employeeRepository) UpdateDepartments(companyId uint, employeeId uint, departmentIds []uint) error {
-	return r.Conn.Transaction(func(tx *gorm.DB) error {
+	return r.transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("company_id = ? AND employee_id = ?", companyId, employeeId).
 			Delete(&model.EmployeeDepartments{}).Error; err != nil {
 			return err
@@ -191,13 +208,16 @@ func (r *employeeRepository) UpdateDepartments(companyId uint, employeeId uint, 
 }
 
 func (r *employeeRepository) Transaction(fn func(repo repository.EmployeeRepository) error) error {
+	if r.inTx {
+		return fn(r)
+	}
 	return r.Conn.Transaction(func(tx *gorm.DB) error {
-		return fn(&employeeRepository{Conn: tx})
+		return fn(&employeeRepository{Conn: tx, inTx: true})
 	})
 }
 
 func (r *employeeRepository) ReplaceTenures(companyId uint, employeeId uint, tenures []model.EmployeeTenures) error {
-	return r.Conn.Transaction(func(tx *gorm.DB) error {
+	return r.transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("company_id = ? AND employee_id = ?", companyId, employeeId).
 			Delete(&model.EmployeeTenures{}).Error; err != nil {
 			return err

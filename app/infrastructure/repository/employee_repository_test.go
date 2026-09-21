@@ -1,12 +1,14 @@
 package repository_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"gorm.io/gorm"
 
 	"app/domain/model"
+	domainrepo "app/domain/repository"
 	"app/infrastructure/repository"
 )
 
@@ -343,5 +345,83 @@ func TestReplaceTenures_ClearsWhenEmpty(t *testing.T) {
 	db.Model(&model.EmployeeTenures{}).Where("employee_id = ?", emp.ID).Count(&count)
 	if count != 0 {
 		t.Errorf("want 0 tenures after clearing, got %d", count)
+	}
+}
+
+func TestEmployeeGetList_CompanyIdZero_ReturnsNothing(t *testing.T) {
+	db := setupEmployeeDB(t)
+	repo := repository.NewEmployeeRepository(db)
+
+	seedEmployee(t, db, 1, "S001")
+	seedEmployee(t, db, 2, "S002")
+
+	// companyId が 0 のとき、構造体クエリだと条件が消えて全社分が返ってしまっていた
+	list, err := repo.GetList(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 0 {
+		t.Errorf("want 0 employees for companyId=0, got %d", len(list))
+	}
+}
+
+func TestEmployeeTransaction_NestedCallsReuseOuterTransaction(t *testing.T) {
+	db := setupEmployeeDB(t)
+	repo := repository.NewEmployeeRepository(db)
+
+	emp := seedEmployee(t, db, 1, "S900")
+	dept := model.Department{CompanyId: 1, Name: "テスト部", OrderNo: 1}
+	if err := db.Create(&dept).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// Transaction 内から ReplaceTenures / UpdateDepartments を呼んでも
+	// SAVEPOINT を重ねずに動作し、結果が反映されること
+	err := repo.Transaction(func(txRepo domainrepo.EmployeeRepository) error {
+		if err := txRepo.ReplaceTenures(1, emp.ID, []model.EmployeeTenures{
+			{CompanyId: 1, EmployeeId: emp.ID, JoinedOn: time.Date(2020, 4, 1, 0, 0, 0, 0, time.Local)},
+		}); err != nil {
+			return err
+		}
+		return txRepo.UpdateDepartments(1, emp.ID, []uint{dept.ID})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var tenureCount, deptCount int64
+	db.Model(&model.EmployeeTenures{}).Where("employee_id = ?", emp.ID).Count(&tenureCount)
+	db.Model(&model.EmployeeDepartments{}).Where("employee_id = ?", emp.ID).Count(&deptCount)
+	if tenureCount != 1 {
+		t.Errorf("want 1 tenure, got %d", tenureCount)
+	}
+	if deptCount != 1 {
+		t.Errorf("want 1 employee_department, got %d", deptCount)
+	}
+}
+
+func TestEmployeeTransaction_RollsBackNestedWrites(t *testing.T) {
+	db := setupEmployeeDB(t)
+	repo := repository.NewEmployeeRepository(db)
+
+	emp := seedEmployee(t, db, 1, "S901")
+
+	wantErr := errors.New("boom")
+	err := repo.Transaction(func(txRepo domainrepo.EmployeeRepository) error {
+		if err := txRepo.ReplaceTenures(1, emp.ID, []model.EmployeeTenures{
+			{CompanyId: 1, EmployeeId: emp.ID, JoinedOn: time.Date(2020, 4, 1, 0, 0, 0, 0, time.Local)},
+		}); err != nil {
+			return err
+		}
+		return wantErr
+	})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("want boom, got %v", err)
+	}
+
+	var count int64
+	db.Model(&model.EmployeeTenures{}).Where("employee_id = ?", emp.ID).Count(&count)
+	if count != 0 {
+		t.Errorf("nested writes must be rolled back, got %d rows", count)
 	}
 }

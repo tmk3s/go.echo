@@ -28,7 +28,7 @@ func TestDepartmentGetById_Found(t *testing.T) {
 	dept := model.Department{CompanyId: 1, Name: "営業部", OrderNo: 1}
 	db.Create(&dept)
 
-	got, err := repo.GetById(dept.ID)
+	got, err := repo.GetById(1, dept.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestDepartmentGetById_Found(t *testing.T) {
 func TestDepartmentGetById_NotFound(t *testing.T) {
 	repo := repository.NewDepartmentRepository(setupDeptDB(t))
 
-	_, err := repo.GetById(9999)
+	_, err := repo.GetById(1, 9999)
 	if err == nil {
 		t.Error("want error for non-existent department, got nil")
 	}
@@ -133,11 +133,40 @@ func TestDepartmentUpdate_ChangesName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := repo.GetById(dept.ID)
+	got, err := repo.GetById(1, dept.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.Name != "新部署名" {
 		t.Errorf("want 新部署名, got %s", got.Name)
+	}
+}
+
+func TestDepartmentGetById_OtherCompany_NotFound(t *testing.T) {
+	db := setupDeptDB(t)
+	repo := repository.NewDepartmentRepository(db)
+
+	dept := model.Department{CompanyId: 2, Name: "他社部署", OrderNo: 1}
+	db.Create(&dept)
+
+	if _, err := repo.GetById(1, dept.ID); err == nil {
+		t.Error("want error when fetching another company's department, got nil")
+	}
+}
+
+func TestDepartmentGetList_CompanyIdZero_ReturnsNothing(t *testing.T) {
+	db := setupDeptDB(t)
+	repo := repository.NewDepartmentRepository(db)
+
+	db.Create(&model.Department{CompanyId: 1, Name: "営業部", OrderNo: 1})
+	db.Create(&model.Department{CompanyId: 2, Name: "他社部署", OrderNo: 1})
+
+	// companyId が 0 のとき、構造体クエリだと条件が消えて全社分が返ってしまっていた
+	list, err := repo.GetList(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 0 {
+		t.Errorf("want 0 departments for companyId=0, got %d", len(list))
 	}
 }

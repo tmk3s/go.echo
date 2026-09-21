@@ -38,39 +38,15 @@ func init() {
 	signingKey = []byte(key)
 	Config = echojwt.Config{
 		NewClaimsFunc: func(c echo.Context) jwt.Claims { return new(jwtCustomClaims) },
-		SigningKey:     signingKey,
+		SigningKey:    signingKey,
 		TokenLookup:   "cookie:session",
 	}
 }
 
-type SignUpRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-func (h *AuthHandler) SignUp(c echo.Context) error {
-	var params SignUpRequest
-	if err := c.Bind(&params); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
-	}
-	if params.Email == "" || params.Password == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "email and password are required")
-	}
-
-	existing, err := h.AuthUseCase.GetUserByEmail(params.Email)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
-	}
-	if existing != nil {
-		return echo.NewHTTPError(http.StatusConflict, "email already exists")
-	}
-
-	user, err := h.AuthUseCase.CreateUser(params.Email, params.Password)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
-	}
-	return c.JSON(http.StatusCreated, user)
-}
+// ユーザー単体のサインアップは廃止した。
+// 会社に所属しないユーザー(company_id = 0)が作られると、
+// 他社のデータが見えたり何も操作できなかったりするため、
+// 会社登録(POST /companies)で会社とユーザーを同時に作成する。
 
 type SignInRequest struct {
 	Email    string `json:"email"`

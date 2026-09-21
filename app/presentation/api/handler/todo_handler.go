@@ -54,8 +54,12 @@ func (h *TodoHandler) Create(c echo.Context) error {
 
 func (h *TodoHandler) Complete(c echo.Context) error {
 	fmt.Printf("%s", "call Complete")
-	id, _ := strconv.Atoi(c.Param("id"))
-	err := h.TodoUseCase.DoneTodo(uint(id))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid todo id")
+	}
+	userId := CurrentUserId(c)
+	err = h.TodoUseCase.DoneTodo(userId, uint(id))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
@@ -64,8 +68,12 @@ func (h *TodoHandler) Complete(c echo.Context) error {
 
 func (h *TodoHandler) Delete(c echo.Context) error {
 	fmt.Printf("%s", "call Delete")
-	id, _ := strconv.Atoi(c.Param("id"))
-	err := h.TodoUseCase.DeleteTodo(uint(id))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid todo id")
+	}
+	userId := CurrentUserId(c)
+	err = h.TodoUseCase.DeleteTodo(userId, uint(id))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

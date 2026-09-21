@@ -1,6 +1,11 @@
 package repository
 
 import (
+	"errors"
+	"fmt"
+
+	apperrors "app/errors"
+
 	"app/domain/model"
 	"app/domain/repository"
 	"gorm.io/gorm"
@@ -16,8 +21,11 @@ func NewTodoRepository(Conn *gorm.DB) repository.TodoRepository {
 
 func (r *todoRepository) GetById(id uint) (*model.Todo, error) {
 	todo := &model.Todo{}
-	err := r.Conn.First(todo, id).Error
-	if err != nil {
+	if err := r.Conn.First(todo, id).Error; err != nil {
+		// gorm のエラーをそのまま返すと usecase が gorm に依存するため共通エラーに変換する
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("todo(id=%d): %w", id, apperrors.ErrNotFound)
+		}
 		return nil, err
 	}
 	return todo, nil
@@ -25,9 +33,8 @@ func (r *todoRepository) GetById(id uint) (*model.Todo, error) {
 
 func (r *todoRepository) GetList(userId uint) ([]model.Todo, error) {
 	var todos []model.Todo
-	query := r.Conn.Where("")
-	query = query.Where(model.Todo{UserId: userId})
-	err := query.Find(&todos).Error
+	// 構造体でのクエリはゼロ値のフィールドが条件から外れるため、明示的に条件を書く
+	err := r.Conn.Where("user_id = ?", userId).Find(&todos).Error
 	if err != nil {
 		return nil, err
 	}

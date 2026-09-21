@@ -1,0 +1,125 @@
+"use client";
+
+import axios from 'axios';
+import ErrorToast from '@/components/ErrorToast'
+
+import { useRouter } from 'next/navigation'
+import { useForm } from "react-hook-form";
+import { useState } from 'react';
+
+const inputClass =
+  "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
+const labelClass = "block mb-2 text-sm font-medium text-gray-900 dark:text-white";
+
+type CompanyRegistrationForm = {
+  company_name: string;
+  last_name: string;
+  first_name: string;
+  email: string;
+  password: string;
+};
+
+const CompanyRegistration = () => {
+  const router = useRouter();
+  const [openErrorToast, setOpenErrorToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting }
+  } = useForm<CompanyRegistrationForm>({
+    defaultValues: {
+      company_name: '',
+      last_name: '',
+      first_name: '',
+      email: '',
+      password: '',
+    }
+  });
+
+  // 会社と最初のユーザーを同時に作成する。作成後はそのままログインできる。
+  const registerCompany = async (data: CompanyRegistrationForm) => {
+    try {
+      axios.defaults.baseURL = 'http://localhost:1323';
+      await axios.post('/companies', data, { withCredentials: true });
+      router.push('/sign_in');
+    } catch (e: any) {
+      setErrorMessage(e.response?.data?.message ?? 'ネットワークエラーが発生しました');
+      setOpenErrorToast(true);
+      console.error(e);
+    }
+  }
+
+  const clostToast = () => setOpenErrorToast(false);
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      {(openErrorToast && errorMessage) && (<ErrorToast message={errorMessage} clostToast={clostToast} />)}
+      <form
+        className="max-w-sm mx-auto"
+        onSubmit={handleSubmit(registerCompany)}
+      >
+        <h1 className="mb-6 text-xl font-semibold text-gray-900 dark:text-white">会社登録</h1>
+
+        <div className="mb-5">
+          <label className={labelClass}>会社名</label>
+          <input
+            type="text"
+            id="company_name"
+            className={inputClass}
+            placeholder="株式会社サンプル"
+            required
+            {...register("company_name")}
+          />
+        </div>
+
+        <div className="mb-5 flex gap-3">
+          <div className="flex-1">
+            <label className={labelClass}>姓</label>
+            <input type="text" id="last_name" className={inputClass} placeholder="山田" required {...register("last_name")} />
+          </div>
+          <div className="flex-1">
+            <label className={labelClass}>名</label>
+            <input type="text" id="first_name" className={inputClass} placeholder="太郎" required {...register("first_name")} />
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <label className={labelClass}>メールアドレス</label>
+          <input
+            type="email"
+            id="email"
+            className={inputClass}
+            placeholder="name@example.com"
+            required
+            {...register("email")}
+          />
+        </div>
+
+        <div className="mb-5">
+          <label className={labelClass}>パスワード</label>
+          <input
+            type="password"
+            id="password"
+            className={inputClass}
+            required
+            minLength={8}
+            {...register("password")}
+          />
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">8文字以上で入力してください</p>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+        >
+          登録
+        </button>
+      </form>
+    </main>
+  );
+}
+
+export default CompanyRegistration

@@ -8,11 +8,11 @@ import (
 
 type UserInfo struct {
 	gorm.Model
-	UserId    uint      `json:"user_id" gorm:"praimaly_key"`
-	LastName  string    `json:"last_name" gorm:"index"`
-	FirstName string    `json:"first_name"`
-	Gender    int       `json:"gender"`
-	BirthDay  time.Time `json:"birthday"`
-	Working   bool      `json:"Working"`
-	Image     []byte    `json:"image"`
+	UserId    uint       `json:"user_id" gorm:"praimaly_key"`
+	LastName  string     `json:"last_name" gorm:"index"`
+	FirstName string     `json:"first_name"`
+	Gender    int        `json:"gender"`
+	BirthDay  *time.Time `json:"birthday"`
+	Working   bool       `json:"working"`
+	Image     []byte     `json:"image"`
 }

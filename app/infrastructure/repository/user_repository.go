@@ -52,12 +52,22 @@ func (r *userRepository) GetByEmailAndPass(email string, password string) (*mode
 	return &user, nil
 }
 
+// hashPassword は平文のパスワードをハッシュ化する。
+// 会社登録でも同じ方式を使うため関数に切り出している。
+func hashPassword(plain string) (string, error) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(plain), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashed), nil
+}
+
 func (r *userRepository) Create(user *model.User) (*model.User, error) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashed, err := hashPassword(user.Password)
 	if err != nil {
 		return nil, err
 	}
-	user.Password = string(hashed)
+	user.Password = hashed
 	if err := r.Conn.Create(user).Error; err != nil {
 		return nil, err
 	}
@@ -65,7 +75,9 @@ func (r *userRepository) Create(user *model.User) (*model.User, error) {
 }
 
 func (r *userRepository) Update(user *model.User) (*model.User, error) {
-	if err := r.Conn.Save(user).Error; err != nil {
+	// 既定の Save は has-one 関連の FK しか更新しないため、UserInfo の列が保存されない。
+	// FullSaveAssociations を有効にして関連のカラムも一緒に更新する。
+	if err := r.Conn.Session(&gorm.Session{FullSaveAssociations: true}).Save(user).Error; err != nil {
 		return nil, err
 	}
 	return user, nil

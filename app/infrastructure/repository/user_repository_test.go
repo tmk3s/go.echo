@@ -2,6 +2,7 @@ package repository_test
 
 import (
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -138,5 +139,66 @@ func TestGetByEmail_DoesNotReturnPassword(t *testing.T) {
 	// The important check: it must not be the plain-text original.
 	if got.Password == "secret" {
 		t.Error("Password should be hashed, not plain text")
+	}
+}
+
+// --- Update ---
+
+func TestUserUpdate_PersistsUserInfoColumns(t *testing.T) {
+	db := setupUserDB(t)
+	repo := repository.NewUserRepository(db)
+
+	user := createTestUser(t, repo, "update@example.com", "password")
+	birthday := time.Date(1990, 1, 2, 0, 0, 0, 0, time.Local)
+	if err := db.Create(&model.UserInfo{
+		UserId:    user.ID,
+		LastName:  "旧姓",
+		FirstName: "旧名",
+		Gender:    1,
+		BirthDay:  &birthday,
+		Working:   false,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := repo.GetById(user.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newBirthday := time.Date(1995, 6, 7, 0, 0, 0, 0, time.Local)
+	loaded.UserInfo.LastName = "新姓"
+	loaded.UserInfo.FirstName = "新名"
+	loaded.UserInfo.Gender = 2
+	loaded.UserInfo.BirthDay = &newBirthday
+	loaded.UserInfo.Working = true
+
+	if _, err := repo.Update(loaded); err != nil {
+		t.Fatal(err)
+	}
+
+	// 既定の Save では has-one 関連の FK しか更新されず、ここが旧姓のままになっていた
+	var got model.UserInfo
+	if err := db.Where("user_id = ?", user.ID).First(&got).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got.LastName != "新姓" || got.FirstName != "新名" {
+		t.Errorf("want 新姓 新名, got %s %s", got.LastName, got.FirstName)
+	}
+	if got.Gender != 2 {
+		t.Errorf("want gender 2, got %d", got.Gender)
+	}
+	if got.BirthDay == nil || !got.BirthDay.Equal(newBirthday) {
+		t.Errorf("want %v, got %v", newBirthday, got.BirthDay)
+	}
+	if !got.Working {
+		t.Error("want working=true")
+	}
+
+	// 関連が二重に作られていないことも確認する
+	var count int64
+	db.Model(&model.UserInfo{}).Where("user_id = ?", user.ID).Count(&count)
+	if count != 1 {
+		t.Errorf("want exactly 1 user_info row, got %d", count)
 	}
 }

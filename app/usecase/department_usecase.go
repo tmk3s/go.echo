@@ -11,8 +11,8 @@ import (
 type DepartmentUseCase interface {
 	GetDepartments(companyId uint) (*[]model.Department, error)
 	Create(companyId uint, name string, parentId *uint) error
-	Update(id uint, name string) error
-	Delete(id uint) error
+	Update(companyId uint, id uint, name string) error
+	Delete(companyId uint, id uint) error
 	Download() error
 	Upload(companyId uint, file multipart.File, fileHeader *multipart.FileHeader) error
 }
@@ -43,8 +43,9 @@ func (u *departmentUseCase) Create(companyId uint, name string, parentId *uint) 
 	return nil
 }
 
-func (u *departmentUseCase) Update(id uint, name string) error {
-	department, err := u.repo.GetById(id)
+func (u *departmentUseCase) Update(companyId uint, id uint, name string) error {
+	// 自社の部署でなければ GetById が見つけられず、他社の部署は更新できない
+	department, err := u.repo.GetById(companyId, id)
 	if err != nil {
 		return err
 	}
@@ -55,8 +56,9 @@ func (u *departmentUseCase) Update(id uint, name string) error {
 	return nil
 }
 
-func (u *departmentUseCase) Delete(id uint) error {
-	department, err := u.repo.GetById(id)
+func (u *departmentUseCase) Delete(companyId uint, id uint) error {
+	// 自社の部署でなければ GetById が見つけられず、他社の部署は削除できない
+	department, err := u.repo.GetById(companyId, id)
 	if err != nil {
 		return err
 	}

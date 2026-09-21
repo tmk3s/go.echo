@@ -65,19 +65,19 @@ func TestDoneTodo_TodoNotFound_ReturnsError(t *testing.T) {
 	todoRepo := &mockTodoRepo{todo: nil, getErr: errNotFound}
 
 	uc := newTodoUC(todoRepo, &mockUserRepo{})
-	err := uc.DoneTodo(999)
+	err := uc.DoneTodo(1, 999)
 	if err == nil {
 		t.Fatal("want error when todo not found, got nil")
 	}
 }
 
 func TestDoneTodo_SetsCompletedTrue(t *testing.T) {
-	todo := &model.Todo{Title: "未完了タスク", Completed: false}
+	todo := &model.Todo{UserId: 1, Title: "未完了タスク", Completed: false}
 	todo.ID = 1
 	todoRepo := &mockTodoRepo{todo: todo}
 
 	uc := newTodoUC(todoRepo, &mockUserRepo{})
-	if err := uc.DoneTodo(1); err != nil {
+	if err := uc.DoneTodo(1, 1); err != nil {
 		t.Fatal(err)
 	}
 	if todoRepo.updatedTodo == nil {
@@ -94,22 +94,75 @@ func TestDeleteTodo_TodoNotFound_ReturnsError(t *testing.T) {
 	todoRepo := &mockTodoRepo{todo: nil, getErr: errNotFound}
 
 	uc := newTodoUC(todoRepo, &mockUserRepo{})
-	err := uc.DeleteTodo(999)
+	err := uc.DeleteTodo(1, 999)
 	if err == nil {
 		t.Fatal("want error when todo not found, got nil")
 	}
 }
 
 func TestDeleteTodo_Success_CallsDelete(t *testing.T) {
-	todo := &model.Todo{Title: "削除するタスク"}
+	todo := &model.Todo{UserId: 1, Title: "削除するタスク"}
 	todo.ID = 1
 	todoRepo := &mockTodoRepo{todo: todo}
 
 	uc := newTodoUC(todoRepo, &mockUserRepo{})
-	if err := uc.DeleteTodo(1); err != nil {
+	if err := uc.DeleteTodo(1, 1); err != nil {
 		t.Fatal(err)
 	}
 	if !todoRepo.deleteCalled {
 		t.Error("Delete was not called on todo repository")
+	}
+}
+
+// ---- 所有者チェック ----
+
+func TestDoneTodo_OtherUsersTodo_ReturnsError(t *testing.T) {
+	todo := &model.Todo{UserId: 2, Title: "他人のタスク"}
+	todo.ID = 1
+	todoRepo := &mockTodoRepo{todo: todo}
+
+	uc := newTodoUC(todoRepo, &mockUserRepo{})
+	if err := uc.DoneTodo(1, 1); err == nil {
+		t.Fatal("want error when completing another user's todo, got nil")
+	}
+	if todoRepo.updatedTodo != nil {
+		t.Error("Update must not be called for another user's todo")
+	}
+}
+
+func TestDeleteTodo_OtherUsersTodo_ReturnsError(t *testing.T) {
+	todo := &model.Todo{UserId: 2, Title: "他人のタスク"}
+	todo.ID = 1
+	todoRepo := &mockTodoRepo{todo: todo}
+
+	uc := newTodoUC(todoRepo, &mockUserRepo{})
+	if err := uc.DeleteTodo(1, 1); err == nil {
+		t.Fatal("want error when deleting another user's todo, got nil")
+	}
+	if todoRepo.deleteCalled {
+		t.Error("Delete must not be called for another user's todo")
+	}
+}
+
+func TestTodo_NotFoundAndOthersTodo_ReturnSameError(t *testing.T) {
+	// 存在しない Todo
+	missing := newTodoUC(&mockTodoRepo{todo: nil, getErr: errNotFound}, &mockUserRepo{})
+	missingErr := missing.DoneTodo(1, 999)
+	if missingErr == nil {
+		t.Fatal("want error when todo does not exist")
+	}
+
+	// 他人の Todo
+	othersTodo := &model.Todo{UserId: 2, Title: "他人のタスク"}
+	othersTodo.ID = 1
+	others := newTodoUC(&mockTodoRepo{todo: othersTodo}, &mockUserRepo{})
+	othersErr := others.DoneTodo(1, 1)
+	if othersErr == nil {
+		t.Fatal("want error when the todo belongs to another user")
+	}
+
+	// 応答が違うと id の総当たりで他人の Todo の実在を判別できてしまう
+	if missingErr.Error() != othersErr.Error() {
+		t.Errorf("errors must be indistinguishable: %q vs %q", missingErr.Error(), othersErr.Error())
 	}
 }

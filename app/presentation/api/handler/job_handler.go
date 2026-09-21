@@ -23,7 +23,8 @@ func (h *JobHandler) GetStatus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid job id")
 	}
 
-	job, err := h.JobUseCase.GetById(uint(id))
+	companyId := CurrentCompanyId(c)
+	job, err := h.JobUseCase.GetById(companyId, uint(id))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "job not found")
 	}

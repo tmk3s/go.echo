@@ -92,6 +92,7 @@ const SignIn = () => {
           <li>* admin@example.com / password1</li>
           <li>* user1@example.com / password2</li>
           <li>* user2@example.com / password3</li>
+          <li>* other@example.com / password4 (別会社)</li>
         </ul>
       </div>
     </main>

@@ -7,8 +7,6 @@ import (
 
 type AuthUseCase interface {
 	GetUser(email string, password string) (*model.User, error)
-	GetUserByEmail(email string) (*model.User, error)
-	CreateUser(email string, password string) (*model.User, error)
 }
 
 type authUseCase struct {
@@ -21,13 +19,4 @@ func NewAuthUseCase(r repository.UserRepository) AuthUseCase {
 
 func (u *authUseCase) GetUser(email string, password string) (*model.User, error) {
 	return u.UserRepository.GetByEmailAndPass(email, password)
-}
-
-func (u *authUseCase) GetUserByEmail(email string) (*model.User, error) {
-	return u.UserRepository.GetByEmail(email)
-}
-
-func (u *authUseCase) CreateUser(email string, password string) (*model.User, error) {
-	user := model.NewUser(email, password)
-	return u.UserRepository.Create(user)
 }

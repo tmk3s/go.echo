@@ -15,7 +15,8 @@ func SteupRouter(e *echo.Echo, h handler.AppHandler) {
 	// e.GET("/users", new(handler.UserHandler).Index)
 
 	//　todoのような書き方できるなら無理にclass使わなくても・・・
-	e.POST("/sign_up", h.AuthHandler.SignUp)
+	// 会社登録は未ログインで実行できる(会社と最初のユーザーを同時に作成する)
+	e.POST("/companies", h.CompanyHandler.Register)
 	e.POST("/sign_in", h.AuthHandler.SignIn)
 
 	api := e.Group("/api")

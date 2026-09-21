@@ -352,3 +352,96 @@ func TestProcessBulkUpdate_AllCodes(t *testing.T) {
 		t.Errorf("want UpdateEmployee called 2 times, got %d", updateCount)
 	}
 }
+
+// ---- CSVファイル内の重複 / トランザクション ----
+
+func TestProcessBulkCreate_DuplicateStaffCodeWithinFile(t *testing.T) {
+	repo := &mockEmployeeRepo{employees: []model.Employee{}}
+	csv := &mockCsvService{
+		rows: []domainservice.EmployeeCSVRow{
+			{StaffCode: "E001", Email: "e1@example.com"},
+			{StaffCode: "E001", Email: "e2@example.com"},
+		},
+	}
+	jobRepo := &mockJobRepo{}
+	jobId := seedJob(t, jobRepo, 1)
+
+	uc := newUCWithJob(repo, &mockDeptRepo{}, &mockPrefRepo{}, csv, jobRepo, &mockBulkImportEnqueuer{})
+	err := uc.ProcessBulkCreate(context.Background(), jobId)
+	if err == nil {
+		t.Fatal("want error for staff code duplicated within the file, got nil")
+	}
+	if !strings.Contains(err.Error(), "E001") {
+		t.Errorf("error should mention E001, got: %s", err.Error())
+	}
+	if jobRepo.finalStatus != "failed" {
+		t.Errorf("want job status failed, got %s", jobRepo.finalStatus)
+	}
+}
+
+func TestProcessBulkCreate_RunsInsideTransaction(t *testing.T) {
+	var txDepth int
+	repo := &mockEmployeeRepo{
+		createFunc: func(emp *model.Employee) (*model.Employee, error) {
+			if txDepth == 0 {
+				t.Error("Create was called outside of a transaction")
+			}
+			emp.ID = 1
+			return emp, nil
+		},
+	}
+	repo.transactionFunc = func(fn func() error) error {
+		txDepth++
+		defer func() { txDepth-- }()
+		return fn()
+	}
+	csv := &mockCsvService{
+		rows: []domainservice.EmployeeCSVRow{{StaffCode: "E001", Email: "e1@example.com"}},
+	}
+	jobRepo := &mockJobRepo{}
+	jobId := seedJob(t, jobRepo, 1)
+
+	uc := newUCWithJob(repo, &mockDeptRepo{}, &mockPrefRepo{}, csv, jobRepo, &mockBulkImportEnqueuer{})
+	if err := uc.ProcessBulkCreate(context.Background(), jobId); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestProcessBulkCreate_ErrorRollsBackWholeImport(t *testing.T) {
+	var committed bool
+	repo := &mockEmployeeRepo{
+		createFunc: func(emp *model.Employee) (*model.Employee, error) {
+			if emp.StaffCode == "E002" {
+				return nil, errNotFound // 2行目で失敗させる
+			}
+			emp.ID = 1
+			return emp, nil
+		},
+	}
+	repo.transactionFunc = func(fn func() error) error {
+		if err := fn(); err != nil {
+			return err // ロールバック相当
+		}
+		committed = true
+		return nil
+	}
+	csv := &mockCsvService{
+		rows: []domainservice.EmployeeCSVRow{
+			{StaffCode: "E001", Email: "e1@example.com"},
+			{StaffCode: "E002", Email: "e2@example.com"},
+		},
+	}
+	jobRepo := &mockJobRepo{}
+	jobId := seedJob(t, jobRepo, 1)
+
+	uc := newUCWithJob(repo, &mockDeptRepo{}, &mockPrefRepo{}, csv, jobRepo, &mockBulkImportEnqueuer{})
+	if err := uc.ProcessBulkCreate(context.Background(), jobId); err == nil {
+		t.Fatal("want error when a row fails, got nil")
+	}
+	if committed {
+		t.Error("transaction must not commit when a row fails")
+	}
+	if jobRepo.finalStatus != "failed" {
+		t.Errorf("want job status failed, got %s", jobRepo.finalStatus)
+	}
+}

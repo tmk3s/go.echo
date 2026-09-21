@@ -1,18 +1,24 @@
 package usecase
 
 import (
+	"errors"
 	"fmt"
 
 	"app/domain/model"
 	"app/domain/repository"
+	apperrors "app/errors"
 )
+
+// ErrTodoNotFound は Todo が存在しない場合と、他人の Todo だった場合の両方で返す。
+// 応答を変えると id を総当たりして他人の Todo の実在を判別できてしまうため。
+var ErrTodoNotFound = errors.New("Todoが存在しません")
 
 // インターフェースは頭大文字
 type TodoUseCase interface {
 	GetTodos(userId uint) (*[]model.Todo, error)
 	AddTodo(userId uint, title string) error
-	DoneTodo(id uint) error
-	DeleteTodo(id uint) error
+	DoneTodo(userId uint, id uint) error
+	DeleteTodo(userId uint, id uint) error
 }
 
 type todoUseCase struct {
@@ -49,13 +55,26 @@ func (u *todoUseCase) AddTodo(userId uint, title string) error {
 	return nil
 }
 
-func (u *todoUseCase) DoneTodo(id uint) error {
+// ownedTodo は自分の Todo だけを返す。存在しない場合も他人の Todo の場合も
+// 同じ ErrTodoNotFound を返し、DB エラーだけはそのまま返す。
+func (u *todoUseCase) ownedTodo(userId uint, id uint) (*model.Todo, error) {
 	todo, err := u.TodoRepository.GetById(id)
 	if err != nil {
-		return err
+		if errors.Is(err, apperrors.ErrNotFound) {
+			return nil, ErrTodoNotFound
+		}
+		return nil, err
 	}
-	if todo == nil {
-		return fmt.Errorf("Todoが存在しません")
+	if todo == nil || todo.UserId != userId {
+		return nil, ErrTodoNotFound
+	}
+	return todo, nil
+}
+
+func (u *todoUseCase) DoneTodo(userId uint, id uint) error {
+	todo, err := u.ownedTodo(userId, id)
+	if err != nil {
+		return err
 	}
 
 	todo.Completed = true
@@ -66,13 +85,10 @@ func (u *todoUseCase) DoneTodo(id uint) error {
 	return nil
 }
 
-func (u *todoUseCase) DeleteTodo(id uint) error {
-	todo, err := u.TodoRepository.GetById(id)
+func (u *todoUseCase) DeleteTodo(userId uint, id uint) error {
+	todo, err := u.ownedTodo(userId, id)
 	if err != nil {
 		return err
-	}
-	if todo == nil {
-		return fmt.Errorf("Todoが存在しません")
 	}
 
 	err = u.TodoRepository.Delete(todo)

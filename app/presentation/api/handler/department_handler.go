@@ -64,7 +64,8 @@ func (h *DepartmentHandler) Update(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	err := h.DepartmentUseCase.Update(params.Id, params.Name)
+	companyId := CurrentCompanyId(c)
+	err := h.DepartmentUseCase.Update(companyId, params.Id, params.Name)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
@@ -78,7 +79,8 @@ func (h *DepartmentHandler) Delete(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	err := h.DepartmentUseCase.Delete(params.Id)
+	companyId := CurrentCompanyId(c)
+	err := h.DepartmentUseCase.Delete(companyId, params.Id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

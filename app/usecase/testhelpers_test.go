@@ -2,15 +2,16 @@ package usecase_test
 
 import (
 	"bytes"
-	"errors"
 	"mime/multipart"
 
 	"app/domain/model"
 	"app/domain/repository"
 	domainservice "app/domain/service"
+	apperrors "app/errors"
 )
 
-var errNotFound = errors.New("record not found")
+// リポジトリ実装と同じ「存在しない」エラーを返す
+var errNotFound = apperrors.ErrNotFound
 
 // ---- file helper ----
 
@@ -23,9 +24,10 @@ func emptyFile() multipart.File { return nopFile{bytes.NewReader(nil)} }
 // ---- mockUserRepo ----
 
 type mockUserRepo struct {
-	user      *model.User
-	findErr   error
-	createErr error
+	user        *model.User
+	findErr     error
+	createErr   error
+	updatedUser *model.User
 }
 
 func (m *mockUserRepo) GetById(_ uint) (*model.User, error)                { return m.user, m.findErr }
@@ -38,8 +40,11 @@ func (m *mockUserRepo) Create(u *model.User) (*model.User, error) {
 	u.ID = 1
 	return u, nil
 }
-func (m *mockUserRepo) Update(u *model.User) (*model.User, error) { return u, nil }
-func (m *mockUserRepo) Delete(_ uint) error                       { return nil }
+func (m *mockUserRepo) Update(u *model.User) (*model.User, error) {
+	m.updatedUser = u
+	return u, nil
+}
+func (m *mockUserRepo) Delete(_ uint) error { return nil }
 
 // ---- mockTodoRepo ----
 
@@ -52,7 +57,7 @@ type mockTodoRepo struct {
 	deleteCalled bool
 }
 
-func (m *mockTodoRepo) GetById(_ uint) (*model.Todo, error) { return m.todo, m.getErr }
+func (m *mockTodoRepo) GetById(_ uint) (*model.Todo, error)  { return m.todo, m.getErr }
 func (m *mockTodoRepo) GetList(_ uint) ([]model.Todo, error) { return m.todos, nil }
 func (m *mockTodoRepo) Add(todo *model.Todo) (*model.Todo, error) {
 	m.addCalled = true
@@ -71,16 +76,17 @@ func (m *mockTodoRepo) Delete(_ *model.Todo) error {
 // ---- mockEmployeeRepo ----
 
 type mockEmployeeRepo struct {
-	employees      []model.Employee
-	createFunc     func(*model.Employee) (*model.Employee, error)
-	updateFunc     func(*model.Employee) error
-	upsertFunc     func(*model.EmployeeAddress) error
-	replaceTenures func(uint, uint, []model.EmployeeTenures) error
-	updateDepts    func(uint, uint, []uint) error
+	employees       []model.Employee
+	createFunc      func(*model.Employee) (*model.Employee, error)
+	updateFunc      func(*model.Employee) error
+	upsertFunc      func(*model.EmployeeAddress) error
+	replaceTenures  func(uint, uint, []model.EmployeeTenures) error
+	updateDepts     func(uint, uint, []uint) error
+	transactionFunc func(func() error) error
 }
 
-func (m *mockEmployeeRepo) GetList(_ uint) ([]model.Employee, error) { return m.employees, nil }
-func (m *mockEmployeeRepo) GetDetail(_, _ uint) (*model.Employee, error) { return nil, nil }
+func (m *mockEmployeeRepo) GetList(_ uint) ([]model.Employee, error)          { return m.employees, nil }
+func (m *mockEmployeeRepo) GetDetail(_, _ uint) (*model.Employee, error)      { return nil, nil }
 func (m *mockEmployeeRepo) GetListForExport(_ uint) ([]model.Employee, error) { return nil, nil }
 func (m *mockEmployeeRepo) Create(emp *model.Employee) (*model.Employee, error) {
 	if m.createFunc != nil {
@@ -116,6 +122,9 @@ func (m *mockEmployeeRepo) ReplaceTenures(cid, eid uint, tenures []model.Employe
 	return nil
 }
 func (m *mockEmployeeRepo) Transaction(fn func(repository.EmployeeRepository) error) error {
+	if m.transactionFunc != nil {
+		return m.transactionFunc(func() error { return fn(m) })
+	}
 	return fn(m)
 }
 
@@ -127,7 +136,7 @@ type mockDeptRepo struct {
 	createCount int
 }
 
-func (m *mockDeptRepo) GetById(_ uint) (*model.Department, error) {
+func (m *mockDeptRepo) GetById(_ uint, _ uint) (*model.Department, error) {
 	if m.byId != nil {
 		return m.byId, nil
 	}
@@ -153,13 +162,27 @@ func (m *mockPrefRepo) GetAll() ([]model.Prefecture, error) { return m.prefectur
 // ---- mockCompanyRepo ----
 
 type mockCompanyRepo struct {
-	company     *model.Company
-	updatedName string
+	company        *model.Company
+	updatedName    string
+	registeredUser *model.User
+	registerErr    error
+	nextCompanyID  uint
 }
 
 func (m *mockCompanyRepo) GetById(_ uint) (*model.Company, error) { return m.company, nil }
 func (m *mockCompanyRepo) Update(c *model.Company) error {
 	m.updatedName = c.Name
+	return nil
+}
+func (m *mockCompanyRepo) Register(company *model.Company, user *model.User) error {
+	if m.registerErr != nil {
+		return m.registerErr
+	}
+	m.nextCompanyID++
+	company.ID = m.nextCompanyID
+	user.CompanyId = company.ID
+	m.company = company
+	m.registeredUser = user
 	return nil
 }
 
