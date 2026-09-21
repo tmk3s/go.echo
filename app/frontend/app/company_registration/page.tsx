@@ -2,14 +2,12 @@
 
 import axios from 'axios';
 import ErrorToast from '@/components/ErrorToast'
+import Button from '@/components/ui/Button';
+import TextInput, { Label } from '@/components/ui/TextInput';
 
 import { useRouter } from 'next/navigation'
 import { useForm } from "react-hook-form";
 import { useState } from 'react';
-
-const inputClass =
-  "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500";
-const labelClass = "block mb-2 text-sm font-medium text-gray-900 dark:text-white";
 
 type CompanyRegistrationForm = {
   company_name: string;
@@ -60,14 +58,13 @@ const CompanyRegistration = () => {
         className="max-w-sm mx-auto"
         onSubmit={handleSubmit(registerCompany)}
       >
-        <h1 className="mb-6 text-xl font-semibold text-gray-900 dark:text-white">会社登録</h1>
+        <h1 className="mb-6 text-xl font-semibold text-body">会社登録</h1>
 
         <div className="mb-5">
-          <label className={labelClass}>会社名</label>
-          <input
+          <Label>会社名</Label>
+          <TextInput
             type="text"
             id="company_name"
-            className={inputClass}
             placeholder="株式会社サンプル"
             required
             {...register("company_name")}
@@ -76,21 +73,20 @@ const CompanyRegistration = () => {
 
         <div className="mb-5 flex gap-3">
           <div className="flex-1">
-            <label className={labelClass}>姓</label>
-            <input type="text" id="last_name" className={inputClass} placeholder="山田" required {...register("last_name")} />
+            <Label>姓</Label>
+            <TextInput type="text" id="last_name" placeholder="山田" required {...register("last_name")} />
           </div>
           <div className="flex-1">
-            <label className={labelClass}>名</label>
-            <input type="text" id="first_name" className={inputClass} placeholder="太郎" required {...register("first_name")} />
+            <Label>名</Label>
+            <TextInput type="text" id="first_name" placeholder="太郎" required {...register("first_name")} />
           </div>
         </div>
 
         <div className="mb-5">
-          <label className={labelClass}>メールアドレス</label>
-          <input
+          <Label>メールアドレス</Label>
+          <TextInput
             type="email"
             id="email"
-            className={inputClass}
             placeholder="name@example.com"
             required
             {...register("email")}
@@ -98,25 +94,20 @@ const CompanyRegistration = () => {
         </div>
 
         <div className="mb-5">
-          <label className={labelClass}>パスワード</label>
-          <input
+          <Label>パスワード</Label>
+          <TextInput
             type="password"
             id="password"
-            className={inputClass}
             required
             minLength={8}
             {...register("password")}
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">8文字以上で入力してください</p>
+          <p className="mt-1 text-xs text-muted">8文字以上で入力してください</p>
         </div>
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-        >
+        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
           登録
-        </button>
+        </Button>
       </form>
     </main>
   );

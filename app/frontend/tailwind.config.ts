@@ -1,5 +1,10 @@
 import type { Config } from "tailwindcss";
 
+// トークンの実体は app/globals.css の CSS 変数。
+// ここではそれを Tailwind のユーティリティ名に割り当てるだけにして、
+// 色の定義がコードの2箇所に散らばらないようにしている。
+const token = (name: string) => `rgb(var(--color-${name}) / <alpha-value>)`;
+
 const config: Config = {
   // ThemeToggle が html に付け外しする dark クラスで切り替える
   darkMode: "class",
@@ -11,10 +16,30 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+      colors: {
+        canvas: token("canvas"),
+        surface: {
+          DEFAULT: token("surface"),
+          muted: token("surface-muted"),
+        },
+        body: token("body"),
+        muted: token("muted"),
+        line: token("line"),
+        brand: {
+          DEFAULT: token("brand"),
+          hover: token("brand-hover"),
+          contrast: token("brand-contrast"),
+          subtle: token("brand-subtle"),
+          text: token("brand-text"),
+        },
+        success: {
+          DEFAULT: token("success"),
+          hover: token("success-hover"),
+        },
+        danger: {
+          DEFAULT: token("danger"),
+          hover: token("danger-hover"),
+        },
       },
     },
   },

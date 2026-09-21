@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import RootLayout from '@/components/RootLayout';
+import Button from '@/components/ui/Button';
+import TextInput, { controlClass } from '@/components/ui/TextInput';
 import useApi from '@/app/api';
 
 type FormValues = {
@@ -45,19 +47,20 @@ function buildDepartmentOptions(departments: Department[]): DepartmentOption[] {
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className='mt-6'>
-    <h2 className='text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300'>{title}</h2>
-    <div className='bg-white rounded-lg shadow dark:bg-gray-800 p-6'>{children}</div>
+    <h2 className='text-lg font-semibold mb-2 text-body'>{title}</h2>
+    <div className='bg-surface rounded-lg shadow p-6'>{children}</div>
   </div>
 );
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <label className='block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300'>{label}</label>
+    <label className='block mb-1 text-sm font-medium text-body'>{label}</label>
     {children}
   </div>
 );
 
-const inputClass = 'w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white';
+
+const inputClass = controlClass;
 
 const EmployeeEditPage = () => {
   const { id } = useParams();
@@ -147,19 +150,15 @@ const EmployeeEditPage = () => {
         <div className='flex items-center justify-between'>
           <h1 className='text-3xl font-bold'>社員編集</h1>
           <div className='flex gap-2'>
-            <button
-              type='submit'
-              className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
-            >
+            <Button
+              type='submit'>
               保存
-            </button>
-            <button
+            </Button>
+            <Button variant='secondary'
               type='button'
-              onClick={() => router.push(`/employees/${id}`)}
-              className='text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
-            >
+              onClick={() => router.push(`/employees/${id}`)}>
               キャンセル
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -167,22 +166,22 @@ const EmployeeEditPage = () => {
         <Section title='基本情報'>
           <div className='grid grid-cols-2 gap-4'>
             <Field label='スタッフコード'>
-              <input className={inputClass} {...register('staff_code')} />
+              <TextInput {...register('staff_code')} />
             </Field>
             <Field label='メールアドレス'>
-              <input type='email' className={inputClass} {...register('email')} />
+              <TextInput type='email' {...register('email')} />
             </Field>
             <Field label='姓'>
-              <input className={inputClass} {...register('last_name')} />
+              <TextInput {...register('last_name')} />
             </Field>
             <Field label='名'>
-              <input className={inputClass} {...register('first_name')} />
+              <TextInput {...register('first_name')} />
             </Field>
             <Field label='姓（カナ）'>
-              <input className={inputClass} {...register('last_name_kana')} />
+              <TextInput {...register('last_name_kana')} />
             </Field>
             <Field label='名（カナ）'>
-              <input className={inputClass} {...register('first_name_kana')} />
+              <TextInput {...register('first_name_kana')} />
             </Field>
           </div>
         </Section>
@@ -191,10 +190,10 @@ const EmployeeEditPage = () => {
         <Section title='住所情報'>
           <div className='grid grid-cols-2 gap-4'>
             <Field label='郵便番号'>
-              <input className={inputClass} {...register('post_code')} />
+              <TextInput {...register('post_code')} />
             </Field>
             <Field label='電話番号'>
-              <input className={inputClass} {...register('tel')} />
+              <TextInput {...register('tel')} />
             </Field>
             <Field label='都道府県'>
               <select className={inputClass} {...register('prefecture_id')}>
@@ -205,13 +204,13 @@ const EmployeeEditPage = () => {
               </select>
             </Field>
             <Field label='市区町村'>
-              <input className={inputClass} {...register('city')} />
+              <TextInput {...register('city')} />
             </Field>
             <Field label='住所1'>
-              <input className={inputClass} {...register('address_line1')} />
+              <TextInput {...register('address_line1')} />
             </Field>
             <Field label='住所2'>
-              <input className={inputClass} {...register('address_line2')} />
+              <TextInput {...register('address_line2')} />
             </Field>
           </div>
         </Section>
@@ -220,22 +219,22 @@ const EmployeeEditPage = () => {
         <Section title='在籍情報'>
           {tenures.length === 0 && <p className='text-sm text-gray-500'>登録なし</p>}
           {tenures.map((tenure, idx) => (
-            <div key={tenure.ID} className='mb-6 pb-6 border-b last:border-b-0 dark:border-gray-700'>
+            <div key={tenure.ID} className='mb-6 pb-6 border-b border-line last:border-b-0'>
               <div className='grid grid-cols-2 gap-4'>
                 <Field label='入社日'>
-                  <input type='date' className={inputClass} value={tenure.joined_on}
+                  <TextInput type='date' value={tenure.joined_on}
                     onChange={(e) => updateTenureField(idx, 'joined_on', e.target.value)} />
                 </Field>
                 <Field label='退職日'>
-                  <input type='date' className={inputClass} value={tenure.resignation_on}
+                  <TextInput type='date' value={tenure.resignation_on}
                     onChange={(e) => updateTenureField(idx, 'resignation_on', e.target.value)} />
                 </Field>
                 <Field label='退職区分'>
-                  <input className={inputClass} value={tenure.resignation_type}
+                  <TextInput value={tenure.resignation_type}
                     onChange={(e) => updateTenureField(idx, 'resignation_type', e.target.value)} />
                 </Field>
                 <Field label='ステータス'>
-                  <input className={inputClass} value={tenure.status}
+                  <TextInput value={tenure.status}
                     onChange={(e) => updateTenureField(idx, 'status', e.target.value)} />
                 </Field>
               </div>
@@ -284,19 +283,15 @@ const EmployeeEditPage = () => {
 
         {/* 下部にも保存ボタン */}
         <div className='mt-6 flex justify-end gap-2'>
-          <button
-            type='submit'
-            className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
-          >
+          <Button
+            type='submit'>
             保存
-          </button>
-          <button
+          </Button>
+          <Button variant='secondary'
             type='button'
-            onClick={() => router.push(`/employees/${id}`)}
-            className='text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
-          >
+            onClick={() => router.push(`/employees/${id}`)}>
             キャンセル
-          </button>
+          </Button>
         </div>
       </form>
     </RootLayout>

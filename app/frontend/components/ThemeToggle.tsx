@@ -104,7 +104,7 @@ const ThemeToggle = () => {
       onClick={cycle}
       aria-label={`表示テーマ: ${LABEL[theme]}。クリックで切り替え`}
       title={`表示テーマ: ${LABEL[theme]}`}
-      className='inline-flex h-9 w-[104px] items-center justify-center gap-1.5 rounded-lg border border-black/10 bg-white/80 px-3 text-sm font-medium text-gray-700 hover:bg-white dark:border-white/20 dark:bg-gray-800/80 dark:text-gray-200 dark:hover:bg-gray-800'
+      className='inline-flex h-9 w-[104px] items-center justify-center gap-1.5 rounded-lg border border-line bg-surface/80 px-3 text-sm font-medium text-body hover:bg-surface'
     >
       <Icon theme={theme} />
       {LABEL[theme]}

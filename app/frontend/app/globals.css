@@ -2,24 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  セマンティックなデザイントークン。
+  値は「用途」で名付けており、ライト / ダークの切り替えはここだけで完結する。
+  そのため各コンポーネントは bg-surface のように書くだけでよく、
+  dark: を二重に書く必要がない。
+
+  Tailwind の <alpha-value>(bg-surface/50 など)に対応させるため、
+  値はカンマ無しの RGB チャンネルで持つ。
+*/
 :root {
-  --foreground-rgb: 0, 0, 0;
-  /* カード(bg-white)と差が出るよう、背景はわずかにグレーにする */
-  --background-rgb: 243, 244, 246;
+  /* 面 */
+  --color-canvas: 243 244 246; /* gray-100 : ページ背景。カード(白)と差を付ける */
+  --color-surface: 255 255 255; /* white    : カード・テーブルの地 */
+  --color-surface-muted: 249 250 251; /* gray-50  : 見出し行など一段落ち着かせる面 */
+  /* 文字 */
+  --color-body: 17 24 39; /* gray-900 */
+  --color-muted: 107 114 128; /* gray-500 : 補足テキスト */
+  /* 罫線 */
+  --color-line: 229 231 235; /* gray-200 */
+  /* ブランド(主要アクション) */
+  --color-brand: 29 78 216; /* blue-700 */
+  --color-brand-hover: 30 64 175; /* blue-800 */
+  --color-brand-contrast: 255 255 255; /* ブランド色の上に載せる文字 */
+  --color-brand-subtle: 239 246 255; /* blue-50  : 選択中の項目の背景 */
+  --color-brand-text: 29 78 216; /* ブランド色の文字(リンク・選択中の項目) */
+  /* 状態色 */
+  --color-success: 21 128 61; /* green-700 */
+  --color-success-hover: 22 101 52; /* green-800 */
+  --color-danger: 185 28 28; /* red-700 */
+  --color-danger-hover: 153 27 27; /* red-800 */
 }
 
 /* システム設定に従う場合も含め、dark クラスの有無だけで切り替える
    (クラスは ThemeToggle と layout.tsx のインラインスクリプトが付け外しする) */
 .dark {
-  --foreground-rgb: 255, 255, 255;
-  --background-rgb: 0, 0, 0;
+  --color-canvas: 0 0 0;
+  --color-surface: 31 41 55; /* gray-800 */
+  --color-surface-muted: 55 65 81; /* gray-700 */
+  --color-body: 255 255 255;
+  --color-muted: 156 163 175; /* gray-400 */
+  --color-line: 55 65 81; /* gray-700 */
+  --color-brand: 37 99 235; /* blue-600 */
+  --color-brand-hover: 29 78 216; /* blue-700 */
+  --color-brand-contrast: 255 255 255;
+  --color-brand-subtle: 55 65 81; /* gray-700 */
+  --color-brand-text: 255 255 255;
+  --color-success: 34 197 94; /* green-500 */
+  --color-success-hover: 22 163 74; /* green-600 */
+  --color-danger: 239 68 68; /* red-500 */
+  --color-danger-hover: 220 38 38; /* red-600 */
 }
 
 /* グラデーション(Next.js のスターター由来)は body の高さでタイルが繰り返され、
    コンテンツが短いページで下側に色の境目が出るため、単色にしている */
 body {
-  color: rgb(var(--foreground-rgb));
-  background-color: rgb(var(--background-rgb));
+  color: rgb(var(--color-body));
+  background-color: rgb(var(--color-canvas));
   min-height: 100vh;
 }
 

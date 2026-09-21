@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import RootLayout from '@/components/RootLayout';
+import Button from '@/components/ui/Button';
+import TextInput from '@/components/ui/TextInput';
 import useApi from '@/app/api';
 
 type CsvColumn = { label: string; required: boolean };
@@ -199,17 +201,16 @@ const Employees = () => {
         <h1 className='text-3xl font-bold'>社員一覧</h1>
         <div className='flex gap-2'>
           <div className='relative' ref={dropdownRef}>
-            <button
+            <Button variant='secondary'
               onClick={() => setShowDropdown((v) => !v)}
-              className='flex items-center gap-1 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
-            >
+              className='flex items-center gap-1'>
               一括操作
               <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M19 9l-7 7-7-7' />
               </svg>
-            </button>
+            </Button>
             {showDropdown && (
-              <div className='absolute right-0 mt-1 w-36 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10 overflow-hidden'>
+              <div className='absolute right-0 mt-1 w-36 bg-surface rounded-lg shadow-lg border border-line z-10 overflow-hidden'>
                 {[
                   { label: 'CSV出力',  onClick: () => { setShowDropdown(false); setShowExportModal(true); } },
                   { label: '一括登録', onClick: () => { setShowDropdown(false); setShowBulkCreateModal(true); } },
@@ -218,7 +219,7 @@ const Employees = () => {
                   <button
                     key={item.label}
                     onClick={item.onClick}
-                    className='w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    className='w-full text-left px-4 py-2.5 text-sm text-body hover:bg-surface-muted'
                   >
                     {item.label}
                   </button>
@@ -240,12 +241,10 @@ const Employees = () => {
             className='hidden'
             onChange={(e) => handleImport(e, '/api/employees/import/update', 'bulk_update')}
           />
-          <button
-            onClick={() => router.push('/employees/new')}
-            className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'
-          >
+          <Button
+            onClick={() => router.push('/employees/new')}>
             新規作成
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -254,7 +253,7 @@ const Employees = () => {
           <svg className='w-5 h-5 text-red-500 shrink-0 mt-0.5' fill='currentColor' viewBox='0 0 20 20'>
             <path fillRule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z' clipRule='evenodd' />
           </svg>
-          <p className='text-sm text-red-700 dark:text-red-400 flex-1'>{importError}</p>
+          <p className='text-sm text-danger flex-1'>{importError}</p>
           <button onClick={() => setImportError(null)} className='text-red-400 hover:text-red-600 dark:hover:text-red-300'>
             <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
               <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
@@ -264,18 +263,18 @@ const Employees = () => {
       )}
 
       <div className='mt-4'>
-        <input
+        <TextInput
           type='text'
           placeholder='スタッフコード・氏名・メールアドレスで検索'
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className='w-full max-w-md bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white'
+          className='max-w-md'
         />
       </div>
 
       <div className='mt-4 overflow-x-auto'>
-        <table className='w-full text-sm text-left text-gray-500 dark:text-gray-400'>
-          <thead className='text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400'>
+        <table className='w-full text-sm text-left text-muted'>
+          <thead className='text-xs text-body uppercase bg-surface-muted'>
             <tr>
               <th className='px-6 py-3'>スタッフコード</th>
               <th className='px-6 py-3'>氏名</th>
@@ -288,7 +287,7 @@ const Employees = () => {
               <tr
                 key={employee.ID}
                 onClick={() => router.push(`/employees/${employee.ID}`)}
-                className='bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer'
+                className='bg-surface border-b border-line hover:bg-surface-muted cursor-pointer'
               >
                 <td className='px-6 py-4'>{employee.staff_code}</td>
                 <td className='px-6 py-4'>{employee.last_name} {employee.first_name}</td>
@@ -331,12 +330,12 @@ const Employees = () => {
 
       {showExportModal && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-          <div className='bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-lg mx-4 flex flex-col max-h-[90vh]'>
-            <div className='flex items-center justify-between px-6 py-4 border-b dark:border-gray-700 shrink-0'>
-              <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>CSVエクスポート</h2>
+          <div className='bg-surface rounded-lg shadow-lg w-full max-w-lg mx-4 flex flex-col max-h-[90vh]'>
+            <div className='flex items-center justify-between px-6 py-4 border-b border-line shrink-0'>
+              <h2 className='text-lg font-semibold text-body'>CSVエクスポート</h2>
               <button
                 onClick={() => setShowExportModal(false)}
-                className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                className='text-muted hover:text-body'
               >
                 <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                   <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
@@ -345,26 +344,26 @@ const Employees = () => {
             </div>
 
             <div className='px-6 py-4 overflow-y-auto'>
-              <p className='text-sm text-gray-500 dark:text-gray-400 mb-4'>
+              <p className='text-sm text-muted mb-4'>
                 出力されるCSVの項目は以下の通りです。
               </p>
               <div className='space-y-5'>
                 {CSV_SECTIONS.map((section) => (
                   <div key={section.title}>
-                    <p className='text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1'>
+                    <p className='text-xs font-semibold text-muted uppercase tracking-wide mb-1'>
                       {section.title}
                     </p>
                     {section.note && (
                       <p className='text-xs text-blue-600 dark:text-blue-400 mb-2'>{section.note}</p>
                     )}
-                    <div className='bg-gray-50 dark:bg-gray-700/50 rounded-lg divide-y divide-gray-200 dark:divide-gray-600'>
+                    <div className='bg-surface-muted rounded-lg divide-y divide-line'>
                       {section.columns.map((col) => (
                         <div key={col.label} className='flex items-center justify-between px-4 py-2'>
-                          <span className='text-sm text-gray-800 dark:text-gray-200'>{col.label}</span>
+                          <span className='text-sm text-body'>{col.label}</span>
                           {col.required ? (
                             <span className='px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded dark:bg-red-900 dark:text-red-300'>必須</span>
                           ) : (
-                            <span className='px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-500 rounded dark:bg-gray-600 dark:text-gray-400'>任意</span>
+                            <span className='px-2 py-0.5 text-xs font-medium bg-surface-muted text-muted rounded'>任意</span>
                           )}
                         </div>
                       ))}
@@ -374,7 +373,7 @@ const Employees = () => {
               </div>
             </div>
 
-            <div className='flex items-center justify-between px-6 py-4 border-t dark:border-gray-700 shrink-0'>
+            <div className='flex items-center justify-between px-6 py-4 border-t border-line shrink-0'>
               <button
                 onClick={downloadSampleCSV}
                 className='flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium'
@@ -385,18 +384,14 @@ const Employees = () => {
                 サンプルをダウンロード
               </button>
               <div className='flex gap-2'>
-                <button
-                  onClick={() => setShowExportModal(false)}
-                  className='text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
-                >
+                <Button variant='secondary'
+                  onClick={() => setShowExportModal(false)}>
                   キャンセル
-                </button>
-                <button
-                  onClick={handleExport}
-                  className='text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
-                >
+                </Button>
+                <Button
+                  onClick={handleExport}>
                   エクスポート
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -426,13 +421,13 @@ const JobProgressModal = ({ progress, onClose }: JobProgressModalProps) => {
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-      <div className='bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md mx-4'>
-        <div className='flex items-center justify-between px-6 py-4 border-b dark:border-gray-700'>
-          <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>
+      <div className='bg-surface rounded-lg shadow-lg w-full max-w-md mx-4'>
+        <div className='flex items-center justify-between px-6 py-4 border-b border-line'>
+          <h2 className='text-lg font-semibold text-body'>
             {jobTypeLabel(progress.jobType)}
           </h2>
           {isDone && (
-            <button onClick={onClose} className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'>
+            <button onClick={onClose} className='text-muted hover:text-body'>
               <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
               </svg>
@@ -446,14 +441,14 @@ const JobProgressModal = ({ progress, onClose }: JobProgressModalProps) => {
               {statusLabel}
             </span>
             {progress.totalCount > 0 && (
-              <span className='text-gray-500 dark:text-gray-400'>
+              <span className='text-muted'>
                 {progress.processedCount} / {progress.totalCount} 件
               </span>
             )}
           </div>
 
           {/* プログレスバー */}
-          <div className='w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700'>
+          <div className='w-full bg-surface-muted rounded-full h-2.5'>
             <div
               className={`h-2.5 rounded-full transition-all duration-500 ${progress.status === 'failed' ? 'bg-red-500' : progress.status === 'completed' ? 'bg-green-500' : 'bg-blue-600'}`}
               style={{ width: `${progress.status === 'completed' ? 100 : pct}%` }}
@@ -462,29 +457,27 @@ const JobProgressModal = ({ progress, onClose }: JobProgressModalProps) => {
 
           {progress.status === 'failed' && progress.errorMessage && (
             <div className='p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800'>
-              <p className='text-sm text-red-700 dark:text-red-400'>{progress.errorMessage}</p>
+              <p className='text-sm text-danger'>{progress.errorMessage}</p>
             </div>
           )}
 
           {progress.status === 'completed' && (
-            <p className='text-sm text-green-600 dark:text-green-400'>
+            <p className='text-sm text-success'>
               {progress.totalCount} 件の処理が完了しました。
             </p>
           )}
 
           {!isDone && (
-            <p className='text-xs text-gray-400 dark:text-gray-500'>バックグラウンドで処理中です。このウィンドウを閉じても処理は継続されます。</p>
+            <p className='text-xs text-muted'>バックグラウンドで処理中です。このウィンドウを閉じても処理は継続されます。</p>
           )}
         </div>
 
         {isDone && (
-          <div className='flex justify-end px-6 py-4 border-t dark:border-gray-700'>
-            <button
-              onClick={onClose}
-              className='text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
-            >
+          <div className='flex justify-end px-6 py-4 border-t border-line'>
+            <Button
+              onClick={onClose}>
               閉じる
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -503,10 +496,10 @@ type ImportModalProps = {
 
 const ImportModal = ({ title, description, onClose, onSelect }: ImportModalProps) => (
   <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-    <div className='bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-lg mx-4 flex flex-col max-h-[90vh]'>
-      <div className='flex items-center justify-between px-6 py-4 border-b dark:border-gray-700 shrink-0'>
-        <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>{title}</h2>
-        <button onClick={onClose} className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'>
+    <div className='bg-surface rounded-lg shadow-lg w-full max-w-lg mx-4 flex flex-col max-h-[90vh]'>
+      <div className='flex items-center justify-between px-6 py-4 border-b border-line shrink-0'>
+        <h2 className='text-lg font-semibold text-body'>{title}</h2>
+        <button onClick={onClose} className='text-muted hover:text-body'>
           <svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
             <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
           </svg>
@@ -514,25 +507,25 @@ const ImportModal = ({ title, description, onClose, onSelect }: ImportModalProps
       </div>
 
       <div className='px-6 py-4 overflow-y-auto'>
-        <p className='text-sm text-gray-500 dark:text-gray-400 mb-4'>{description}</p>
-        <p className='text-sm text-gray-500 dark:text-gray-400 mb-4'>取り込むCSVの項目は以下の通りです。</p>
+        <p className='text-sm text-muted mb-4'>{description}</p>
+        <p className='text-sm text-muted mb-4'>取り込むCSVの項目は以下の通りです。</p>
         <div className='space-y-5'>
           {CSV_SECTIONS.map((section) => (
             <div key={section.title}>
-              <p className='text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1'>
+              <p className='text-xs font-semibold text-muted uppercase tracking-wide mb-1'>
                 {section.title}
               </p>
               {section.note && (
                 <p className='text-xs text-blue-600 dark:text-blue-400 mb-2'>{section.note}</p>
               )}
-              <div className='bg-gray-50 dark:bg-gray-700/50 rounded-lg divide-y divide-gray-200 dark:divide-gray-600'>
+              <div className='bg-surface-muted rounded-lg divide-y divide-line'>
                 {section.columns.map((col) => (
                   <div key={col.label} className='flex items-center justify-between px-4 py-2'>
-                    <span className='text-sm text-gray-800 dark:text-gray-200'>{col.label}</span>
+                    <span className='text-sm text-body'>{col.label}</span>
                     {col.required ? (
                       <span className='px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded dark:bg-red-900 dark:text-red-300'>必須</span>
                     ) : (
-                      <span className='px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-500 rounded dark:bg-gray-600 dark:text-gray-400'>任意</span>
+                      <span className='px-2 py-0.5 text-xs font-medium bg-surface-muted text-muted rounded'>任意</span>
                     )}
                   </div>
                 ))}
@@ -542,19 +535,15 @@ const ImportModal = ({ title, description, onClose, onSelect }: ImportModalProps
         </div>
       </div>
 
-      <div className='flex justify-end gap-2 px-6 py-4 border-t dark:border-gray-700 shrink-0'>
-        <button
-          onClick={onClose}
-          className='text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
-        >
+      <div className='flex justify-end gap-2 px-6 py-4 border-t border-line shrink-0'>
+        <Button variant='secondary'
+          onClick={onClose}>
           キャンセル
-        </button>
-        <button
-          onClick={onSelect}
-          className='text-white bg-blue-700 hover:bg-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
-        >
+        </Button>
+        <Button
+          onClick={onSelect}>
           CSVを選択して実行
-        </button>
+        </Button>
       </div>
     </div>
   </div>

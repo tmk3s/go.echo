@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from 'react';
-import {Form, PrimaryBtn} from '@/consts/styles';
 import RootLayout from '@/components/RootLayout';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 import useApi from '@/app/api';
 
 const DepartmentsCsv = () => {
@@ -42,47 +43,43 @@ const DepartmentsCsv = () => {
       <RootLayout>
         <>
           <h1 className='text-3xl font-bold'>部署CSV</h1>
-          <div className={`${Form} mt-20`}>
+          <Card className='mt-20'>
             <div className={`p-5`}>
               <div className='mt-10'>
                 <h2 className='font-bold'>CSVアップロード</h2>
-                <p className='mb-2 text-sm text-gray-500'>
+                <p className='mb-2 text-sm text-muted'>
                   1行目にヘッダー <code>name</code> を持つCSVをアップロードしてください。<br />
                   CSVに存在しない部署名は新規作成されます。
                 </p>
 
                 <div className="flex items-center justify-center w-full mt-4">
-                  <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                  <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-line border-dashed rounded-lg cursor-pointer bg-surface-muted hover:bg-canvas">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <svg className="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                      <svg className="w-8 h-8 mb-4 text-muted" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
                         <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                       </svg>
                       {file
-                        ? <p className="text-sm text-gray-700 font-semibold">{file.name}</p>
-                        : <p className="text-sm text-gray-500"><span className="font-semibold">クリックして選択</span>またはドラッグ＆ドロップ</p>
+                        ? <p className="text-sm text-body font-semibold">{file.name}</p>
+                        : <p className="text-sm text-muted"><span className="font-semibold">クリックして選択</span>またはドラッグ＆ドロップ</p>
                       }
-                      <p className="text-xs text-gray-400 mt-1">.csv のみ</p>
+                      <p className="text-xs text-muted mt-1">.csv のみ</p>
                     </div>
                     <input id="dropzone-file" type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
                   </label>
                 </div>
 
                 {message && (
-                  <p className={`mt-3 text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className={`mt-3 text-sm ${message.type === 'success' ? 'text-success' : 'text-danger'}`}>
                     {message.text}
                   </p>
                 )}
 
-                <button
-                  className={`${PrimaryBtn} mt-4`}
-                  onClick={handleUpload}
-                  disabled={!file || uploading}
-                >
+                <Button className='mt-4' onClick={handleUpload} disabled={!file || uploading}>
                   {uploading ? 'アップロード中...' : 'インポート実行'}
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
         </>
       </RootLayout>
     </main>

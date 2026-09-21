@@ -1,9 +1,10 @@
 "use client";
 
-import Cookies from 'js-cookie';
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from 'react';
 import RootLayout from '@/components/RootLayout';
+import Button from '@/components/ui/Button';
+import LogoutButton from '@/components/LogoutButton';
 import newApiInstance from "../api"
 
 interface Todo {
@@ -38,30 +39,30 @@ const EditModal = ({obj, onSubmit, setOpenModal, deleteTodo}: {obj: any, onSubmi
       >
         <div className="relative p-4 w-full max-w-2xl max-h-full">
           {/* <!-- Modal content --> */}
-          <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
+          <div className="relative bg-surface rounded-lg shadow">
             {/* <!-- Modal body --> */}
             <div className="p-4 md:p-5 space-y-4">
               <input type="hidden" id="id" {...register("id")} />
               <textarea
                 id="title"
-                className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                className="block p-2.5 w-full text-sm text-body bg-surface-muted rounded-lg border border-line focus:ring-brand focus:border-brand"
                 required
                 {...register("title")}
               />
             </div>
             {/* <!-- Modal footer --> */}
-            <div className="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-              <button type="submit" className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+            <div className="flex items-center p-4 md:p-5 border-t border-line rounded-b">
+              <Button type="submit">
                 {btnName}
-              </button>
-              <button type="button" onClick={() => setOpenModal(false)} className="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
+              </Button>
+              <Button variant="secondary" className="ms-3" onClick={() => setOpenModal(false)}>
                 Cancel
-              </button>
+              </Button>
               {
                 obj && (
-                  <button type="button" onClick={() => deleteTodo(obj)} className="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-red-100 dark:focus:ring-red-700 dark:bg-red-800 dark:text-red-400 dark:border-red-600 dark:hover:text-white dark:hover:bg-red-700">
+                  <Button variant="danger" className="ms-3" onClick={() => deleteTodo(obj)}>
                     Delete
-                  </button>
+                  </Button>
                 )
               }
             </div>
@@ -149,20 +150,13 @@ const Todos =  () => {
       {/* Modal toggle */}
       { login && (
         <>
-          <button onClick={() => setOpenAddModal(true)} className="mb-16 block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" type="button">
+          <Button className="mb-16" onClick={() => setOpenAddModal(true)}>
             Add
-          </button>
+          </Button>
 
-          <button 
-            onClick={() => { 
-              Cookies.remove('session')
-              window.location.href = '/sign_in'
-            }}
-            className="mb-16 block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            type="button"
-          >
-            sign_out
-          </button>
+          <div className="mb-16 w-40">
+            <LogoutButton />
+          </div>
         </>
       )}
       
@@ -175,7 +169,7 @@ const Todos =  () => {
             return (
               <div 
                 key={todo.ID}
-                className="relative block group min-h-72 p-6 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700"
+                className="relative block group min-h-72 p-6 bg-surface border border-line rounded-lg shadow hover:bg-surface-muted"
                 onClick={() => {
                   setTodo({id: todo.ID, title: todo.title})
                   setOpenCompleteModal(true)
@@ -183,7 +177,7 @@ const Todos =  () => {
               >
                 {/* https://qiita.com/yuji38kwmt/items/ba8d59eb0abef1956bae relativeではbreak-words効かない*/}
                 {/* calsの部分は親要素からpadding分引いたものを指定している */}
-                <p className="absolute w-max max-w-[calc(100%_-_48px)] break-words line-clamp-[10] font-normal text-gray-700 dark:text-gray-400">
+                <p className="absolute w-max max-w-[calc(100%_-_48px)] break-words line-clamp-[10] font-normal text-body">
                   {todo.title}
                 </p>
                 {todo.completed && (

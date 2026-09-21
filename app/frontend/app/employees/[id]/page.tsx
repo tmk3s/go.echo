@@ -3,6 +3,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import RootLayout from '@/components/RootLayout';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import { Row } from '@/components/ui/DescriptionTable';
 import useApi from '@/app/api';
 
 type EmployeeAddress = {
@@ -53,23 +56,10 @@ function buildDeptLabelMap(allDepts: Department[]): Map<number, string> {
   return map;
 }
 
-const Row = ({ label, value }: { label: string; value: string | null | undefined }) => (
-  <tr className='border-b dark:border-gray-700'>
-    <th className='px-6 py-3 w-48 bg-gray-50 dark:bg-gray-700 font-medium text-gray-700 dark:text-gray-300 text-sm'>
-      {label}
-    </th>
-    <td className='px-6 py-3 text-sm text-gray-900 dark:text-white'>
-      {value ?? '—'}
-    </td>
-  </tr>
-);
-
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className='mt-6'>
-    <h2 className='text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300'>{title}</h2>
-    <div className='bg-white rounded-lg shadow dark:bg-gray-800 overflow-hidden'>
-      {children}
-    </div>
+    <h2 className='text-lg font-semibold mb-2 text-body'>{title}</h2>
+    <Card>{children}</Card>
   </div>
 );
 
@@ -100,7 +90,7 @@ const EmployeeDetailPage = () => {
   if (!detail) {
     return (
       <RootLayout>
-        <p className='text-gray-500'>読み込み中...</p>
+        <p className='text-muted'>読み込み中...</p>
       </RootLayout>
     );
   }
@@ -112,18 +102,10 @@ const EmployeeDetailPage = () => {
       <div className='flex items-center justify-between'>
         <h1 className='text-3xl font-bold'>社員詳細</h1>
         <div className='flex gap-2'>
-          <button
-            onClick={() => router.push(`/employees/${id}/edit`)}
-            className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700'
-          >
-            編集
-          </button>
-          <button
-            onClick={() => router.push('/employees')}
-            className='text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700'
-          >
+          <Button onClick={() => router.push(`/employees/${id}/edit`)}>編集</Button>
+          <Button variant='secondary' onClick={() => router.push('/employees')}>
             一覧に戻る
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -151,14 +133,14 @@ const EmployeeDetailPage = () => {
             </tbody>
           </table>
         ) : (
-          <p className='px-6 py-4 text-sm text-gray-500'>登録なし</p>
+          <p className='px-6 py-4 text-sm text-muted'>登録なし</p>
         )}
       </Section>
 
       <Section title='在籍情報'>
         {Tenures.length > 0 ? (
-          <table className='w-full text-sm text-left text-gray-500 dark:text-gray-400'>
-            <thead className='text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400'>
+          <table className='w-full text-sm text-left text-muted'>
+            <thead className='text-xs text-body uppercase bg-surface-muted'>
               <tr>
                 <th className='px-6 py-3'>入社日</th>
                 <th className='px-6 py-3'>退職日</th>
@@ -168,7 +150,7 @@ const EmployeeDetailPage = () => {
             </thead>
             <tbody>
               {Tenures.map((tenure) => (
-                <tr key={tenure.ID} className='border-b dark:border-gray-700'>
+                <tr key={tenure.ID} className='border-b border-line'>
                   <td className='px-6 py-3'>{formatDate(tenure.joined_on)}</td>
                   <td className='px-6 py-3'>{formatDate(tenure.resignation_on) ?? '—'}</td>
                   <td className='px-6 py-3'>{tenure.resignation_type ?? '—'}</td>
@@ -178,28 +160,28 @@ const EmployeeDetailPage = () => {
             </tbody>
           </table>
         ) : (
-          <p className='px-6 py-4 text-sm text-gray-500'>登録なし</p>
+          <p className='px-6 py-4 text-sm text-muted'>登録なし</p>
         )}
       </Section>
 
       <Section title='所属部署'>
         {Departments.length > 0 ? (
-          <table className='w-full text-sm text-left text-gray-500 dark:text-gray-400'>
-            <thead className='text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400'>
+          <table className='w-full text-sm text-left text-muted'>
+            <thead className='text-xs text-body uppercase bg-surface-muted'>
               <tr>
                 <th className='px-6 py-3'>部署名</th>
               </tr>
             </thead>
             <tbody>
               {Departments.map((dept) => (
-                <tr key={dept.ID} className='border-b dark:border-gray-700'>
+                <tr key={dept.ID} className='border-b border-line'>
                   <td className='px-6 py-3'>{deptLabelMap.get(dept.ID) ?? dept.name}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <p className='px-6 py-4 text-sm text-gray-500'>登録なし</p>
+          <p className='px-6 py-4 text-sm text-muted'>登録なし</p>
         )}
       </Section>
     </RootLayout>
