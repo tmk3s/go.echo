@@ -48,6 +48,24 @@ func init() {
 // 他社のデータが見えたり何も操作できなかったりするため、
 // 会社登録(POST /companies)で会社とユーザーを同時に作成する。
 
+const sessionCookieName = "session"
+
+// newSessionCookie はセッションCookieを組み立てる。
+// 削除時は発行時と同じ属性(特に Path)でないとブラウザが消してくれないため、
+// 発行とログアウトで必ずこの関数を通す。
+func newSessionCookie(value string, expires time.Time, maxAge int) *http.Cookie {
+	return &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    value,
+		Path:     "/",
+		Expires:  expires,
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   os.Getenv("APP_ENV") == "production",
+	}
+}
+
 type SignInRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -82,14 +100,17 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal error")
 	}
 
-	cookie := new(http.Cookie)
-	cookie.Name = "session"
-	cookie.Value = t
-	cookie.Expires = time.Now().Add(time.Hour)
-	cookie.HttpOnly = true
-	cookie.SameSite = http.SameSiteStrictMode
-	cookie.Secure = os.Getenv("APP_ENV") == "production"
-	c.SetCookie(cookie)
+	expires := time.Now().Add(time.Hour)
+	c.SetCookie(newSessionCookie(t, expires, int(time.Hour.Seconds())))
 
+	return c.String(http.StatusOK, "ok")
+}
+
+// SignOut はセッションCookieを失効させる。
+// Cookie は HttpOnly なのでフロントエンドからは削除できず、サーバーで消す必要がある。
+// また、トークンが期限切れでもログアウトできるよう、JWT 必須のグループには置かない。
+func (h *AuthHandler) SignOut(c echo.Context) error {
+	// MaxAge を負値にすると、ブラウザは即座に Cookie を削除する
+	c.SetCookie(newSessionCookie("", time.Unix(0, 0), -1))
 	return c.String(http.StatusOK, "ok")
 }

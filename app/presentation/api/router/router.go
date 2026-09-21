@@ -18,6 +18,8 @@ func SteupRouter(e *echo.Echo, h handler.AppHandler) {
 	// 会社登録は未ログインで実行できる(会社と最初のユーザーを同時に作成する)
 	e.POST("/companies", h.CompanyHandler.Register)
 	e.POST("/sign_in", h.AuthHandler.SignIn)
+	// 期限切れのトークンでもログアウトできるよう、JWT 必須の /api 配下には置かない
+	e.POST("/sign_out", h.AuthHandler.SignOut)
 
 	api := e.Group("/api")
 	api.Use(echojwt.WithConfig(handler.Config)) // /api 下はJWTの認証が必要

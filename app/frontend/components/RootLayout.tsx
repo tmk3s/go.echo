@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import LogoutButton from '@/components/LogoutButton';
 
 type MenuItem = {
   label: string;
@@ -57,6 +58,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               </li>
             ))}
           </ul>
+          <div className='border-t border-gray-200 py-2 dark:border-gray-700'>
+            <LogoutButton />
+          </div>
         </nav>
         <div className='m-16 lg:w-[1920px]'>
           {children}
